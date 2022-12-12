@@ -30,10 +30,14 @@ function M.schedule(plugin)
 		return
 	end
 
-	-- add the packer plugin if it exists in the packer_plugins table and is
+	-- add the plugin from packer loader if it exists in the packer_plugins table and
 	-- already not enabled
 	if packer_plugins[name] and not packer_plugins[name].enable then
 		local del_augroup = plugin.del_autocmd or true
+
+		-- TODO: extract the del_augroup into its own function and use it
+		-- from there maybe use it in multiple places
+		--
 		-- if del_augroup is set to false in the plugin table then don't
 		-- delete it maybe its from the mapping loader in which case
 		-- there is no augroup
@@ -42,6 +46,9 @@ function M.schedule(plugin)
 		end
 		vim.schedule(function()
 			packer.loader(name)
+			-- TODO: move this to the on_plugin loader function and
+			-- add a simple schedule loader function rather then this
+			-- Keep in mind this will be used fro the norg ftype also
 			if name == "nvim-lspconfig" then
 				vim.cmd("silent! do FileType")
 			end
