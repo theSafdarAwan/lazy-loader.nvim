@@ -52,7 +52,7 @@ callbacks.neorg = function()
 	vim.schedule(function()
 		require("safdar.plugins.neorg").load_conf()
 		-- trick to reload the buffer
-		vim.cmd("e")
+		vim.cmd("silent! do BufEnter")
 	end)
 end
 

@@ -46,6 +46,14 @@ function M.schedule(plugin)
 		end
 		vim.schedule(function()
 			packer.loader(name)
+
+			-- if the plugin is going to be used for a specifice
+			-- filetype to reload the buffer after loading the
+			-- plugin
+			if plugin.ft then
+				vim.cmd("silent! do BufEnter")
+			end
+
 			-- TODO: move this to the on_plugin loader function and
 			-- add a simple schedule loader function rather then this
 			-- Keep in mind this will be used fro the norg ftype also

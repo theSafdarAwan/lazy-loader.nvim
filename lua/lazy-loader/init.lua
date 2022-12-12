@@ -149,7 +149,7 @@ end
 -- schedule plugin loading with the event
 loaders.schedule_autocmd = function(plugin)
 	plugin.callback = function()
-		schedule(plugin.name)
+		schedule({ name = plugin.name, ft = plugin.ft or false })
 	end
 	register_autocmd(plugin)
 end
