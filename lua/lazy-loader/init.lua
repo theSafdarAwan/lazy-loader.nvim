@@ -7,7 +7,7 @@ local vim = vim
 local packer = require("packer")
 local packer_plugins = _G.packer_plugins
 
-local utils = require("lazy-loader.utils")
+local utils = require("lazy-loader.helpers")
 local schedule = utils.schedule
 local register_autocmd = utils.register_autocmd
 local add_package = utils.add_package

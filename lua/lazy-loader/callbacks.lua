@@ -5,7 +5,7 @@ local api = vim.api
 --                        Callback functions                        --
 ----------------------------------------------------------------------
 
-local utils = require("lazy-loader.utils")
+local utils = require("lazy-loader.helpers")
 local schedule = utils.schedule
 local register_autocmd = utils.register_autocmd
 
