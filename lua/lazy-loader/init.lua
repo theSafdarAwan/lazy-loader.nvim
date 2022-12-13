@@ -156,4 +156,107 @@ end
 
 M.loaders = loaders
 
+----------------------------------------------------------------------
+--                             Re-write                             --
+----------------------------------------------------------------------
+local function load_plugin(plugin)
+	if plugin.packadd then
+		vim.cmd("silent! packadd " .. plugin.name)
+	end
+	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
+		if plugin.del_augroup then
+			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+		end
+		packer.loader(plugin.name)
+	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
+		if plugin.del_augroup then
+			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+		end
+	end
+end
+
+local api = vim.api
+local events = { "BufRead", "BufWinEnter", "BufNewFile" }
+
+local function register_event(autocmd, plugin)
+	local pattern = nil
+	if autocmd.ft_ext then
+		pattern = "*." .. autocmd.ft_ext
+	end
+	api.nvim_create_autocmd(autocmd.events or autocmd.event or events, {
+		group = api.nvim_create_augroup("lazy_load_" .. tostring(plugin.name), { clear = true }),
+		pattern = pattern,
+		-- callback = autocmd.callback,
+		callback = function()
+			autocmd.callback()
+			if plugin.on_load.cmd then
+				schedule(function()
+					vim.cmd(plugin.on_load.cmd)
+				end)
+			end
+		end,
+	})
+end
+
+-- to add the mappings
+local function set_key(key, plugin)
+	local function callback()
+		if plugin.del_augroup then
+			load_plugin(plugin)
+			vim.cmd(plugin.on_load.cmd)
+		else
+			vim.schedul(function()
+				packer.loader(plugin.name)
+			end)
+			vim.cmd(plugin.on_load.cmd)
+		end
+	end
+	vim.keymap.set(key.mode, key.bind, function()
+		callback()
+	end, key.opts or { noremap = true, silent = true })
+end
+
+-- send individual keys to the set_key
+local function keymap_loader(keys, plugin)
+	if keys then
+		for _, k in pairs(keys) do
+			local mode = "n"
+			local bind = k
+			print(vim.inspect(k))
+			if type(k) == "table" then
+				mode = k[1]
+				bind = k[2]
+			end
+			set_key({ mode = mode, bind = bind, opts = { noremap = true, silent = true } }, plugin)
+		end
+	end
+end
+
+M.loader = function(tbl)
+	local autocmd = tbl.registers.autocmd
+	local keys = tbl.registers.keymap.keys
+
+	-- plugin tbl needed for all registers to load plugin
+	local plugin = {
+		name = tbl.name,
+		del_augroup = tbl.del_augroup,
+		callback = tbl.registers.keymap.on_load.config,
+		packadd = tbl.packadd,
+		on_load = tbl.registers.keymap.on_load,
+	}
+	-- if both autocmd and mapping registers are added then add maps callback
+	-- function with to delete the augroup after the plugin is loaded through
+	-- a map
+	if keys and autocmd then
+		if not autocmd.callback then
+			autocmd.callback = function()
+				load_plugin(plugin)
+				plugin.on_load.config()
+			end
+		end
+		keymap_loader(keys, plugin)
+		register_event(autocmd, plugin)
+	end
+end
+
 return M
