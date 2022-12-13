@@ -173,6 +173,10 @@ local function load_plugin(plugin)
 			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
 		end
 	end
+	-- load the user configuration
+	if plugin.on_load.config then
+		plugin.on_load.config()
+	end
 end
 
 local api = vim.api
@@ -186,7 +190,6 @@ local function register_event(autocmd, plugin)
 	api.nvim_create_autocmd(autocmd.events or autocmd.event or events, {
 		group = api.nvim_create_augroup("lazy_load_" .. tostring(plugin.name), { clear = true }),
 		pattern = pattern,
-		-- callback = autocmd.callback,
 		callback = function()
 			autocmd.callback()
 			if plugin.on_load.cmd then
@@ -205,10 +208,10 @@ local function set_key(key, plugin)
 			load_plugin(plugin)
 			vim.cmd(plugin.on_load.cmd)
 		else
-			vim.schedul(function()
-				packer.loader(plugin.name)
+			packer.loader(plugin.name)
+			vim.schedule(function()
+				vim.cmd(plugin.on_load.cmd)
 			end)
-			vim.cmd(plugin.on_load.cmd)
 		end
 	end
 	vim.keymap.set(key.mode, key.bind, function()
@@ -222,7 +225,6 @@ local function keymap_loader(keys, plugin)
 		for _, k in pairs(keys) do
 			local mode = "n"
 			local bind = k
-			print(vim.inspect(k))
 			if type(k) == "table" then
 				mode = k[1]
 				bind = k[2]
@@ -232,6 +234,49 @@ local function keymap_loader(keys, plugin)
 	end
 end
 
+-- @doc expects a table
+-- {
+--	-- plugin name
+-- 	name = "foo", -- string
+--	-- boolean value needed when you have to type of registers a keymap and a autocmd
+-- 	del_augroup = [[true|false]] , -- boolean
+-- 	-- boolean value add plugin as a package for plugin that need to be added that don't
+-- 	-- have a setup function like undotree
+-- 	packadd = [[true|false]] -- boolean
+--	-- table of registers for lazy loading currently on 2 are available keymap and autocmd
+-- 	registers = {
+--		-- this table includes table of keys to add as lazy loader trigger for this plugin
+-- 		keymap = {
+--			--  table of keys with either a single string or a table
+--			-- with mode name and the key
+-- 			keys = {
+--				"<leader>cc", -- keybind as a string
+--				{ "n", "<leader>bc" } -- or a key with the mode and keybind
+--			},
+--			-- on_load tbl lets you specify config for you plugin
+--			-- like requiring the config file for the plugin this
+--			-- will be required after the plugin is loaded and a cmd
+--			-- which will be executed to open the plugin if need need
+--			-- that.
+-- 			on_load = {
+-- 				cmd = "echo 'Hello, World!'",
+-- 				-- this key is just like packer config key
+-- 				config = function()
+-- 					require("foo.bar")
+-- 					-- or
+-- 					require("bar.baz").setup({ -- config goes here})
+-- 				end,
+-- 			},
+-- 		},
+-- 		-- this register adds an autocmd for the specified plugin
+-- 		autocmd = {
+--			-- this key acts as a buffer file validator you need to
+--			-- specify the file extension of the file that you want
+--			-- plugin to be loaded on the events that you provided.
+-- 			ft_ext = "norg",
+-- 		},
+-- 	},
+-- }
 M.loader = function(tbl)
 	local autocmd = tbl.registers.autocmd
 	local keys = tbl.registers.keymap.keys
