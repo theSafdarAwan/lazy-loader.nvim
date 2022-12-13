@@ -201,7 +201,13 @@ local function register_event(autocmd, plugin)
 	})
 end
 
+-- TODO: add a autocmd for BufEnter so that if the autocmd.ft_ext is provided
+-- only add mapping to the buffer files with this pattern
 -- to add the mappings
+
+-- TODO: add feedkey function to which we give a table of mappings with the
+-- information attached to it like plugin name and then after the plugin is
+-- loaded we remove all the mappings in that table
 local function set_key(key, plugin)
 	local function callback()
 		if plugin.del_augroup then
@@ -239,10 +245,10 @@ end
 --	-- plugin name
 -- 	name = "foo", -- string
 --	-- boolean value needed when you have to type of registers a keymap and a autocmd
--- 	del_augroup = [[true|false]] , -- boolean
+-- 	del_augroup = [[true or false]] , -- boolean
 -- 	-- boolean value add plugin as a package for plugin that need to be added that don't
 -- 	-- have a setup function like undotree
--- 	packadd = [[true|false]] -- boolean
+-- 	packadd = [[true or false]], -- boolean
 --	-- table of registers for lazy loading currently on 2 are available keymap and autocmd
 -- 	registers = {
 --		-- this table includes table of keys to add as lazy loader trigger for this plugin
@@ -255,16 +261,18 @@ end
 --			},
 --			-- on_load tbl lets you specify config for you plugin
 --			-- like requiring the config file for the plugin this
---			-- will be required after the plugin is loaded and a cmd
---			-- which will be executed to open the plugin if need need
---			-- that.
--- 			on_load = {
+--			-- will be required after the plugin is loaded.
+--			on_load = {
+--				-- events on which this plugin should be loaded if no events are provided
+--				-- then defaults are =>  "BufRead", "BufWinEnter", "BufNewFile"
+--				[[event or events]] = {"BufRead", "Insertenter"},
+--				-- which will be executed to open the plugin if need need that.
 -- 				cmd = "echo 'Hello, World!'",
 -- 				-- this key is just like packer config key
 -- 				config = function()
 -- 					require("foo.bar")
 -- 					-- or
--- 					require("bar.baz").setup({ -- config goes here})
+-- 					require("bar.baz").setup({ --[[config goes here]]})
 -- 				end,
 -- 			},
 -- 		},
