@@ -160,22 +160,43 @@ M.loaders = loaders
 --                             Re-write                             --
 ----------------------------------------------------------------------
 local function load_plugin(plugin)
+	local buf_reload = false
+	-- you can also add a plugin using packadd also
 	if plugin.packadd then
 		vim.cmd("silent! packadd " .. plugin.name)
+		buf_reload = true
 	end
+
 	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
 		if plugin.del_augroup then
 			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
 		end
 		packer.loader(plugin.name)
+		buf_reload = true
 	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
 		if plugin.del_augroup then
 			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
 		end
 	end
+
 	-- load the user configuration
 	if plugin.on_load.config then
 		plugin.on_load.config()
+		buf_reload = true
+	end
+
+	-- execute event if provided in the on_load.event
+	if plugin.on_load.event then
+		vim.schedule(function()
+			vim.cmd("silent! do " .. plugin.on_load.event)
+		end)
+	end
+
+	if buf_reload then
+		-- a little trick to trigger the reload the buffer after the plugin is loaded
+		vim.schedule(function()
+			vim.cmd("silent! do BufEnter")
+		end)
 	end
 end
 
@@ -183,20 +204,27 @@ local api = vim.api
 local events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
 local function register_event(autocmd, plugin)
+	-- helpful for filetype plugin lazy loading
 	local pattern = nil
 	if autocmd.ft_ext then
 		pattern = "*." .. autocmd.ft_ext
 	end
 	api.nvim_create_autocmd(autocmd.events or autocmd.event or events, {
-		group = api.nvim_create_augroup("lazy_load_" .. tostring(plugin.name), { clear = true }),
+		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
 		pattern = pattern,
 		callback = function()
+			-- call the callback function which is either provided by
+			-- the user in the aucomand register or
+			-- if not provieded there then overridden with the
+			-- on_load.config
 			autocmd.callback()
-			if plugin.on_load.cmd then
-				schedule(function()
-					vim.cmd(plugin.on_load.cmd)
-				end)
-			end
+
+			-- execute the event if provided by the user after the loading of plugin
+			-- if plugin.on_load.event then
+			-- 	vim.schedule(function()
+			-- 		vim.cmd("silent! do " .. plugin.on_load.event)
+			-- 	end)
+			-- end
 		end,
 	})
 end
@@ -210,11 +238,8 @@ end
 -- loaded we remove all the mappings in that table
 local function set_key(key, plugin)
 	local function callback()
-		if plugin.del_augroup then
-			load_plugin(plugin)
-			vim.cmd(plugin.on_load.cmd)
-		else
-			packer.loader(plugin.name)
+		load_plugin(plugin)
+		if plugin.on_load.cmd then
 			vim.schedule(function()
 				vim.cmd(plugin.on_load.cmd)
 			end)
@@ -225,7 +250,7 @@ local function set_key(key, plugin)
 	end, key.opts or { noremap = true, silent = true })
 end
 
--- send individual keys to the set_key
+-- send individual keys to the set_key and plugin table
 local function keymap_loader(keys, plugin)
 	if keys then
 		for _, k in pairs(keys) do
@@ -274,6 +299,9 @@ end
 -- 					-- or
 -- 					require("bar.baz").setup({ --[[config goes here]]})
 -- 				end,
+-- 				-- event Like BufRead or BufEnter to reload the
+-- 				-- buffer after the plugin is loaded
+-- 				event = "BufEnter"
 -- 			},
 -- 		},
 -- 		-- this register adds an autocmd for the specified plugin
@@ -309,6 +337,11 @@ M.loader = function(tbl)
 		end
 		keymap_loader(keys, plugin)
 		register_event(autocmd, plugin)
+	end
+
+	-- if only the keymap register is added
+	if keys then
+		keymap_loader(keys, plugin)
 	end
 end
 
