@@ -250,6 +250,11 @@ local function set_key(key, plugin)
 	end, key.opts or { noremap = true, silent = true })
 end
 
+-- TODO: if the attach_on_event is true then add an autocmd which with
+-- the event name of the plugin then register an event with the same name
+-- with this plugin name in callback function of the autocmd for this
+-- plugin autocmd register
+
 -- send individual keys to the set_key and plugin table
 local function keymap_loader(keys, plugin)
 	if keys then
@@ -265,6 +270,8 @@ local function keymap_loader(keys, plugin)
 	end
 end
 
+-- TODO: add something like keys_on_event so that the mappings should be added
+
 -- @doc expects a table
 -- {
 --	-- plugin name
@@ -278,6 +285,8 @@ end
 -- 	registers = {
 --		-- this table includes table of keys to add as lazy loader trigger for this plugin
 -- 		keymap = {
+--			-- adds keymaps only on event register trigger for this mapping
+--			attach_on_event = false, -- boolean default false
 --			--  table of keys with either a single string or a table
 --			-- with mode name and the key
 -- 			keys = {
@@ -313,6 +322,7 @@ end
 -- 		},
 -- 	},
 -- }
+
 M.loader = function(tbl)
 	local autocmd = tbl.registers.autocmd
 	local keys = tbl.registers.keymap.keys
