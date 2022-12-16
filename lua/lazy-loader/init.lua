@@ -261,7 +261,8 @@ local function keymap_loader(keys, plugin)
 				mode = k[1]
 				bind = k[2]
 			end
-			set_key({ mode = mode, bind = bind, opts = { noremap = true, silent = true } }, plugin)
+			local keybind = { mode = mode, bind = bind, opts = { noremap = true, silent = true } }
+			set_key(keybind, plugin)
 		end
 	end
 end
