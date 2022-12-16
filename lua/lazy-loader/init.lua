@@ -163,29 +163,29 @@ M.loaders = loaders
 --                             Re-write                             --
 ----------------------------------------------------------------------
 local function load_plugin(plugin)
-	local buf_reload = false
-	-- you can also add a plugin using packadd also
-	if plugin.packadd then
-		vim.cmd("silent! packadd " .. plugin.name)
-		buf_reload = true
-	end
-
 	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
+		-- load the user configuration
+		if plugin.before_load and plugin.before_load.config then
+			plugin.before_load.config()
+		end
 		if plugin.del_augroup then
 			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
 		end
+		-- add the package this is important else you won't be able to
+		-- execute the command from command line for this plugin's you lazy loaded
+		vim.cmd("silent! packadd " .. plugin.name)
 		packer.loader(plugin.name)
-		buf_reload = true
 	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
 		if plugin.del_augroup then
 			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
 		end
+	else
+		return
 	end
 
 	-- load the user configuration
 	if plugin.on_load.config then
 		plugin.on_load.config()
-		buf_reload = true
 	end
 
 	-- execute event if provided in the on_load.event
@@ -195,12 +195,10 @@ local function load_plugin(plugin)
 		end)
 	end
 
-	if buf_reload then
+	vim.schedule(function()
 		-- a little trick to trigger the reload the buffer after the plugin is loaded
-		vim.schedule(function()
-			vim.cmd("silent! do BufEnter")
-		end)
-	end
+		vim.cmd("silent! do BufEnter")
+	end)
 end
 
 local api = vim.api
@@ -222,11 +220,7 @@ local function register_event(autocmd, plugin)
 			if autocmd.ft and vim.bo.filetype ~= autocmd.ft then
 				return
 			end
-			-- call the callback function which is either provided by
-			-- the user in the aucomand register or
-			-- if not provieded there then will be overridden with the
-			-- on_load.config
-			autocmd.callback()
+			load_plugin(plugin)
 		end,
 	})
 end
@@ -280,9 +274,6 @@ end
 -- 	name = "foo", -- string
 --	-- boolean value needed when you have to type of registers a keymap and a autocmd
 -- 	del_augroup = [[true or false]] , -- boolean
--- 	-- boolean value add plugin as a package for plugin that need to be added that don't
--- 	-- have a setup function like undotree
--- 	packadd = [[true or false]], -- boolean
 --	-- table of registers for lazy loading currently on 2 are available keymap and autocmd
 -- 	registers = {
 --		-- this table includes table of keys to add as lazy loader trigger for this plugin
@@ -299,24 +290,21 @@ end
 --			-- like requiring the config file for the plugin this
 --			-- will be required after the plugin is loaded.
 --			on_load = {
---				-- events on which this plugin should be loaded if no events are provided
---				-- then defaults are =>  "BufRead", "BufWinEnter", "BufNewFile"
---				[[event or events]] = {"BufRead", "Insertenter"},
---				-- which will be executed to open the plugin if need need that.
+--				-- this will be executed to open the plugin if need need that.
 -- 				cmd = "echo 'Hello, World!'",
--- 				-- this key is just like packer config key
+-- 				-- this key is just like packer config key require
+-- 				-- your config files in here
 -- 				config = function()
 -- 					require("foo.bar")
 -- 					-- or
 -- 					require("bar.baz").setup({ --[[config goes here]]})
 -- 				end,
--- 				-- event Like BufRead or BufEnter to reload the
--- 				-- buffer after the plugin is loaded
--- 				event = "BufEnter"
 -- 			},
 -- 		},
 -- 		-- this register adds an autocmd for the specified plugin
 -- 		autocmd = {
+--			-- TODO: add the events documentation
+--			--
 --			-- this key acts as a buffer file validator to which the
 --			-- autocmd should be attached you need to specify the filetype
 --			-- or file extension of the file that you want plugin to be
@@ -326,45 +314,45 @@ end
 -- 			-- NOTE:ft_ext is very helpful for filetypes like neorg which
 -- 			-- are set after the treesitter you won't be able to lazy
 -- 			-- lazy_load the neorg if you are also lazy loading treesitter
+--			--
 -- 			-- ft_ext = "norg", -- or filetype extension
+--			on_load = { -- see keymap.on_load },
 -- 		},
 -- 	},
 -- }
 
--- TODO: Provide the same config as the keymap to the autocmd register and add
--- the after key which defines which register has to complete first
--- Like in my case i want to add markdown-preview plugin mappings only after the
--- markdown file is opened: autocmd first and after that keymap
 M.loader = function(tbl)
 	local autocmd = tbl.registers.autocmd
 	local keymap = tbl.registers.keymap
+
+	local after = keymap and keymap.after or autocmd and autocmd.after
 
 	-- plugin tbl needed for all registers to load plugin
 	local plugin = {
 		name = tbl.name,
 		del_augroup = tbl.del_augroup,
-		callback = tbl.registers.keymap.on_load.config,
 		packadd = tbl.packadd,
-		on_load = tbl.registers.keymap.on_load,
+		on_load = tbl.on_load,
+		before_load = tbl.before_load,
 	}
 	-- if both autocmd and mapping registers are added then add maps callback
 	-- function to delete the augroup after the plugin is loaded through a map
 	-- NOTE: what if user provides the callback and the on_load.confg maybe give warning
 	if keymap and autocmd then
-		-- check if the autocmd doesn't have callback function already defined
-		if not autocmd.callback then
-			autocmd.callback = function()
-				load_plugin(plugin)
-				plugin.on_load.config()
-			end
-		end
+		-- if after and after == "keymap" then
+		-- 	keymap_loader(keymap.keys, plugin)
+		-- elseif after and after == "autocmd" then
+		-- 	register_event(autocmd, plugin)
+		-- else
 		keymap_loader(keymap.keys, plugin)
 		register_event(autocmd, plugin)
-	end
-
-	-- if only the keymap register is added
-	if keymap.keys then
+		-- end
+	elseif keymap and keymap.keys then
+		-- if only the keymap register is added
 		keymap_loader(keymap.keys, plugin)
+	elseif autocmd then
+		-- if only autocmd register is added
+		register_event(autocmd, plugin)
 	end
 end
 
