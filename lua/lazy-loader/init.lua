@@ -184,12 +184,12 @@ local function load_plugin(plugin)
 	end
 
 	-- load the user configuration
-	if plugin.on_load.config then
+	if plugin.on_load and plugin.on_load.config then
 		plugin.on_load.config()
 	end
 
 	-- execute event if provided in the on_load.event
-	if plugin.on_load.event then
+	if plugin.on_load and plugin.on_load.event then
 		vim.schedule(function()
 			vim.cmd("silent! do " .. plugin.on_load.event)
 		end)
@@ -229,21 +229,37 @@ end
 -- only add mapping to the buffer files with this pattern
 -- to add the mappings
 
--- TODO: add feedkey function to which we give a table of mappings with the
--- information attached to it like plugin name and then after the plugin is
--- loaded we remove all the mappings in that table
+-- to keep track of the plugins mappings added list
+local map_plugins_list = {}
+
 local function set_key(key, plugin)
-	local function callback()
+	local function callback(bind)
 		load_plugin(plugin)
 		if plugin.on_load.cmd then
 			vim.schedule(function()
 				vim.cmd(plugin.on_load.cmd)
 			end)
 		end
+		-- TODO: read the source code of the packer to understand how
+		-- they are handling the keys
+		-- TODO:take the input from the user as a mapping
+		-- because user might only provide a single mapping
+		-- print("bind " .. bind)
+		-- vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(bind, true, false, true), "n", true)
 	end
 	vim.keymap.set(key.mode, key.bind, function()
-		callback()
+		callback(key.bind)
 	end, key.opts or { noremap = true, silent = true })
+
+	-- populate the mapped plugins mappings list
+	-- if map_plugins_list[plugin.name] then
+	-- 	local idx = plugin.name
+	-- 	map_plugins_list[plugin.name][idx + 1] = key
+	-- else
+	-- 	map_plugins_list[plugin.name] = {}
+	-- 	map_plugins_list[plugin.name][1] = key
+	-- end
+	-- print(vim.inspect(map_plugins_list))
 end
 
 -- TODO: if the attach_on_event is true then add an autocmd which with
@@ -306,6 +322,9 @@ end
 -- 		autocmd = {
 --			-- TODO: add the events documentation
 --			--
+--			-- event or events are the same use whatever you want
+--			event = "name of the events", -- string
+--			events = "name of the events", -- string
 --			-- this key acts as a buffer file validator to which the
 --			-- autocmd should be attached you need to specify the filetype
 --			-- or file extension of the file that you want plugin to be
