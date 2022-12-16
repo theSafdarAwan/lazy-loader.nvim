@@ -1,3 +1,6 @@
+-- NOTE: what if the user provides a mapping to load the plugin but doesn't have
+-- that mapping specified in his config then we would get an error when trying to
+-- delete the autocmd what should we do then.
 local M = {}
 
 local vim = vim
@@ -204,27 +207,26 @@ local api = vim.api
 local events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
 local function register_event(autocmd, plugin)
-	-- helpful for filetype plugin lazy loading
-	local pattern = nil
+	local pattern = "*"
 	if autocmd.ft_ext then
 		pattern = "*." .. autocmd.ft_ext
+	elseif autocmd.ft then
+		pattern = autocmd.ft
 	end
+
 	api.nvim_create_autocmd(autocmd.events or autocmd.event or events, {
 		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
 		pattern = pattern,
 		callback = function()
+			-- validate if the file type matches the autocmd.ft if provided
+			if autocmd.ft and vim.bo.filetype ~= autocmd.ft then
+				return
+			end
 			-- call the callback function which is either provided by
 			-- the user in the aucomand register or
-			-- if not provieded there then overridden with the
+			-- if not provieded there then will be overridden with the
 			-- on_load.config
 			autocmd.callback()
-
-			-- execute the event if provided by the user after the loading of plugin
-			-- if plugin.on_load.event then
-			-- 	vim.schedule(function()
-			-- 		vim.cmd("silent! do " .. plugin.on_load.event)
-			-- 	end)
-			-- end
 		end,
 	})
 end
@@ -315,17 +317,27 @@ end
 -- 		},
 -- 		-- this register adds an autocmd for the specified plugin
 -- 		autocmd = {
---			-- this key acts as a buffer file validator you need to
---			-- specify the file extension of the file that you want
---			-- plugin to be loaded on the events that you provided.
--- 			ft_ext = "norg",
+--			-- this key acts as a buffer file validator to which the
+--			-- autocmd should be attached you need to specify the filetype
+--			-- or file extension of the file that you want plugin to be
+--			-- loaded on the events that you provided.
+-- 			ft = "markdown", -- markdown file type
+-- 			ft = "md", -- markdown file type
+-- 			-- NOTE:ft_ext is very helpful for filetypes like neorg which
+-- 			-- are set after the treesitter you won't be able to lazy
+-- 			-- lazy_load the neorg if you are also lazy loading treesitter
+-- 			-- ft_ext = "norg", -- or filetype extension
 -- 		},
 -- 	},
 -- }
 
+-- TODO: Provide the same config as the keymap to the autocmd register and add
+-- the after key which defines which register has to complete first
+-- Like in my case i want to add markdown-preview plugin mappings only after the
+-- markdown file is opened: autocmd first and after that keymap
 M.loader = function(tbl)
 	local autocmd = tbl.registers.autocmd
-	local keys = tbl.registers.keymap.keys
+	local keymap = tbl.registers.keymap
 
 	-- plugin tbl needed for all registers to load plugin
 	local plugin = {
@@ -336,22 +348,23 @@ M.loader = function(tbl)
 		on_load = tbl.registers.keymap.on_load,
 	}
 	-- if both autocmd and mapping registers are added then add maps callback
-	-- function with to delete the augroup after the plugin is loaded through
-	-- a map
-	if keys and autocmd then
+	-- function to delete the augroup after the plugin is loaded through a map
+	-- NOTE: what if user provides the callback and the on_load.confg maybe give warning
+	if keymap and autocmd then
+		-- check if the autocmd doesn't have callback function already defined
 		if not autocmd.callback then
 			autocmd.callback = function()
 				load_plugin(plugin)
 				plugin.on_load.config()
 			end
 		end
-		keymap_loader(keys, plugin)
+		keymap_loader(keymap.keys, plugin)
 		register_event(autocmd, plugin)
 	end
 
 	-- if only the keymap register is added
-	if keys then
-		keymap_loader(keys, plugin)
+	if keymap.keys then
+		keymap_loader(keymap.keys, plugin)
 	end
 end
 
