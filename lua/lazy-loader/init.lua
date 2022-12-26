@@ -229,9 +229,6 @@ end
 -- only add mapping to the buffer files with this pattern
 -- to add the mappings
 
--- to keep track of the plugins mappings added list
-local map_plugins_list = {}
-
 local function set_key(key, plugin)
 	local function callback(bind)
 		load_plugin(plugin)
@@ -241,8 +238,6 @@ local function set_key(key, plugin)
 			end)
 		end
 
-		-- TODO: work on this conf that you copied from the packer.nvim
-		---------------------
 		local extra = ""
 		while true do
 			local c = vim.fn.getchar(0)
@@ -265,21 +260,10 @@ local function set_key(key, plugin)
 
 		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
 		vim.api.nvim_feedkeys(escaped_keys, "m", true)
-		---------------------
 	end
 	vim.keymap.set(key.mode, key.bind, function()
 		callback(key.bind)
 	end, key.opts or { noremap = true, silent = true })
-
-	-- populate the mapped plugins mappings list
-	-- if map_plugins_list[plugin.name] then
-	-- 	local idx = plugin.name
-	-- 	map_plugins_list[plugin.name][idx + 1] = key
-	-- else
-	-- 	map_plugins_list[plugin.name] = {}
-	-- 	map_plugins_list[plugin.name][1] = key
-	-- end
-	-- print(vim.inspect(map_plugins_list))
 end
 
 -- TODO: if the attach_on_event is true then add an autocmd which with
@@ -305,6 +289,7 @@ end
 
 -- TODO: add something like keys_on_event so that the mappings should be added
 
+-- TODO: update docs
 -- @doc expects a table
 -- {
 --	-- plugin name
@@ -362,9 +347,15 @@ end
 -- }
 
 M.loader = function(tbl)
-	local autocmd = tbl.registers.autocmd
-	local keymap = tbl.registers.keymap
+	local reg = tbl.registers
+	local autocmd
+	local keymap
+	if reg then
+		autocmd = reg.autocmd
+		keymap = reg.keymap
+	end
 
+	-- TODO: implement this
 	local after = keymap and keymap.after or autocmd and autocmd.after
 
 	-- plugin tbl needed for all registers to load plugin
