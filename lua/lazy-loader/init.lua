@@ -232,6 +232,9 @@ end
 -- to keep track of the plugins mappings added list
 local map_plugins_list = {}
 
+
+-- TODO: running run in packer doesn't work
+
 local function set_key(key, plugin)
 	local function callback(bind)
 		load_plugin(plugin)
