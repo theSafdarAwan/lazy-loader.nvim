@@ -240,12 +240,32 @@ local function set_key(key, plugin)
 				vim.cmd(plugin.on_load.cmd)
 			end)
 		end
-		-- TODO: read the source code of the packer to understand how
-		-- they are handling the keys
-		-- TODO:take the input from the user as a mapping
-		-- because user might only provide a single mapping
-		-- print("bind " .. bind)
-		-- vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(bind, true, false, true), "n", true)
+
+		-- TODO: work on this conf that you copied from the packer.nvim
+		---------------------
+		local extra = ""
+		while true do
+			local c = vim.fn.getchar(0)
+			if c == 0 then
+				break
+			end
+			extra = extra .. vim.fn.nr2char(c)
+		end
+
+		local prefix = vim.v.count ~= 0 and vim.v.count or ""
+		prefix = prefix .. "\"" .. vim.v.register
+		if vim.fn.mode("full") == "no" then
+			if vim.v.operator == "c" then
+				prefix = "" .. prefix
+			end
+			prefix = prefix .. vim.v.operator
+		end
+
+		vim.fn.feedkeys(prefix, "n")
+
+		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
+		vim.api.nvim_feedkeys(escaped_keys, "m", true)
+		---------------------
 	end
 	vim.keymap.set(key.mode, key.bind, function()
 		callback(key.bind)
