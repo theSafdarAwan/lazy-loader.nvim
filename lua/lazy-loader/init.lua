@@ -236,7 +236,9 @@ local function set_key(key, plugin)
 	local function callback(bind)
 		load_plugin(plugin)
 		if plugin.on_load.cmd then
-			vim.schedule(function()
+			-- need to schedule_wrap this else some cmds will be executed before even the
+			-- plugin is loaded properly
+			vim.schedule_wrap(function()
 				vim.cmd(plugin.on_load.cmd)
 			end)
 		end
