@@ -204,24 +204,36 @@ end
 local api = vim.api
 local events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
-local function register_event(autocmd, plugin)
+-- to load the file type plugin
+local function load_ft_plugin(plugin)
+	-- validate if the file type matches the autocmd.ft if provided
+	if plugin.ft and vim.bo.filetype ~= plugin.ft then
+		return
+	end
+	load_plugin(plugin.name)
+end
+
+local function register_event(plugin)
 	local pattern = "*"
-	if autocmd.ft_ext then
-		pattern = "*." .. autocmd.ft_ext
-	elseif autocmd.ft then
-		pattern = autocmd.ft
+	if plugin.ft_ext then
+		pattern = "*." .. plugin.ft_ext
+	elseif plugin.ft then
+		pattern = plugin.ft
 	end
 
-	api.nvim_create_autocmd(autocmd.events or autocmd.event or events, {
+	local callback
+	if plugin.callback and plugin.open_on_ft then
+		callback = load_ft_plugin(plugin)
+	else
+		callback = function()
+			load_ft_plugin(plugin)
+		end
+	end
+
+	api.nvim_create_autocmd(plugin.events or plugin.event or events, {
 		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
 		pattern = pattern,
-		callback = function()
-			-- validate if the file type matches the autocmd.ft if provided
-			if autocmd.ft and vim.bo.filetype ~= autocmd.ft then
-				return
-			end
-			load_plugin(plugin)
-		end,
+		callback = callback,
 	})
 end
 
@@ -348,42 +360,63 @@ end
 
 M.loader = function(tbl)
 	local reg = tbl.registers
+
+	----------------------------------------------------------------------
+	--                         Autocmd Register                         --
+	----------------------------------------------------------------------
 	local autocmd
-	local keymap
-	if reg then
+	if reg.autocmd then
 		autocmd = reg.autocmd
-		keymap = reg.keymap
+	end
+	-- to provide the name of the plugin in the register_event function
+	autocmd.name = tbl.name
+	-- to provide the file type if provided by the plugin
+	if tbl.ft then
+		autocmd.ft = tbl.ft
 	end
 
 	-- TODO: implement this
 	local after = keymap and keymap.after or autocmd and autocmd.after
 
-	-- plugin tbl needed for all registers to load plugin
-	local plugin = {
+	----------------------------------------------------------------------
+	--                          Keymap Loader                           --
+	----------------------------------------------------------------------
+	local keymap
+	if reg.keymap then
+		keymap = reg.keymap
+	end
+	-- @desc tbl needed for keymap register
+	local keymap_conf = {
 		name = tbl.name,
 		del_augroup = tbl.del_augroup,
 		packadd = tbl.packadd,
 		on_load = tbl.on_load,
 		before_load = tbl.before_load,
+		keys = keymap.keys,
 	}
-	-- if both autocmd and mapping registers are added then add maps callback
-	-- function to delete the augroup after the plugin is loaded through a map
+
+	----------------------------------------------------------------------
+	--                   Adding Plugins to The Stack                    --
+	----------------------------------------------------------------------
 	-- NOTE: what if user provides the callback and the on_load.confg maybe give warning
 	if keymap and autocmd then
+		-- @desc if both autocmd and mapping registers are added then add maps callback
+		-- function to delete the augroup after the plugin is loaded through a map
+
 		-- if after and after == "keymap" then
 		-- 	keymap_loader(keymap.keys, plugin)
 		-- elseif after and after == "autocmd" then
 		-- 	register_event(autocmd, plugin)
 		-- else
-		keymap_loader(keymap.keys, plugin)
-		register_event(autocmd, plugin)
+		keymap_loader(keymap_conf)
+		register_event(autocmd)
 		-- end
 	elseif keymap and keymap.keys then
-		-- if only the keymap register is added
-		keymap_loader(keymap.keys, plugin)
+		-- @desc if only the keymap register is added
+		keymap_loader(keymap_conf)
 	elseif autocmd then
-		-- if only autocmd register is added
-		register_event(autocmd, plugin)
+		-- @desc if only autocmd register is added
+		register_event(autocmd)
 	end
 end
 
