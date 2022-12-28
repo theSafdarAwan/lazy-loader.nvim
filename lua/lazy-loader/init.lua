@@ -244,6 +244,10 @@ end
 
 local function set_key(key, plugin)
 	vim.keymap.set(key.mode, key.bind, function()
+		-- Important: need to delete this map before the plugin loading because now the mappings
+		-- for plugin will be loaded
+		vim.keymap.del(key.mode, key.bind)
+
 		load_plugin(plugin)
 		if plugin.on_load.cmd then
 			-- need to schedule_wrap this else some cmds will be executed before even the
@@ -275,9 +279,6 @@ local function set_key(key, plugin)
 
 		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
 		vim.api.nvim_feedkeys(escaped_keys, "m", true)
-
-		-- Important: need to delete the this map because now the mappings for plugin are loaded
-		vim.keymap.del(key.mode, key.bind)
 	end, key.opts or { noremap = true, silent = true })
 end
 
@@ -303,6 +304,7 @@ local function keymap_loader(keys, plugin)
 end
 
 -- TODO: add something like keys_on_event so that the mappings should be added
+-- after a certain event like on filetype
 
 ----------------------------------------------------------------------
 --                         Autocmd Register                         --
