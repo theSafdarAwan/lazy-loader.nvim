@@ -204,24 +204,36 @@ end
 local api = vim.api
 local events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
-local function register_event(autocmd, plugin)
+-- to load the file type plugin
+local function load_ft_plugin(plugin)
+	-- validate if the file type matches the autocmd.ft if provided
+	if plugin.ft and vim.bo.filetype ~= plugin.ft then
+		return
+	end
+	load_plugin(plugin.name)
+end
+
+local function register_event(plugin)
 	local pattern = "*"
-	if autocmd.ft_ext then
-		pattern = "*." .. autocmd.ft_ext
-	elseif autocmd.ft then
-		pattern = autocmd.ft
+	if plugin.ft_ext then
+		pattern = "*." .. plugin.ft_ext
+	elseif plugin.ft then
+		pattern = plugin.ft
 	end
 
-	api.nvim_create_autocmd(autocmd.events or autocmd.event or events, {
+	local callback
+	if plugin.callback and plugin.open_on_ft then
+		callback = load_ft_plugin(plugin)
+	else
+		callback = function()
+			load_ft_plugin(plugin)
+		end
+	end
+
+	api.nvim_create_autocmd(plugin.events or plugin.event or events, {
 		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
 		pattern = pattern,
-		callback = function()
-			-- validate if the file type matches the autocmd.ft if provided
-			if autocmd.ft and vim.bo.filetype ~= autocmd.ft then
-				return
-			end
-			load_plugin(plugin)
-		end,
+		callback = callback,
 	})
 end
 
@@ -229,14 +241,8 @@ end
 -- only add mapping to the buffer files with this pattern
 -- to add the mappings
 
--- to keep track of the plugins mappings added list
-local map_plugins_list = {}
-
-
--- TODO: running run in packer doesn't work
-
 local function set_key(key, plugin)
-	local function callback(bind)
+	local function callback()
 		load_plugin(plugin)
 		if plugin.on_load.cmd then
 			-- need to schedule_wrap this else some cmds will be executed before even the
@@ -246,8 +252,6 @@ local function set_key(key, plugin)
 			end)
 		end
 
-		-- TODO: work on this conf that you copied from the packer.nvim
-		---------------------
 		local extra = ""
 		while true do
 			local c = vim.fn.getchar(0)
@@ -270,21 +274,10 @@ local function set_key(key, plugin)
 
 		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
 		vim.api.nvim_feedkeys(escaped_keys, "m", true)
-		---------------------
 	end
 	vim.keymap.set(key.mode, key.bind, function()
-		callback(key.bind)
+		callback()
 	end, key.opts or { noremap = true, silent = true })
-
-	-- populate the mapped plugins mappings list
-	-- if map_plugins_list[plugin.name] then
-	-- 	local idx = plugin.name
-	-- 	map_plugins_list[plugin.name][idx + 1] = key
-	-- else
-	-- 	map_plugins_list[plugin.name] = {}
-	-- 	map_plugins_list[plugin.name][1] = key
-	-- end
-	-- print(vim.inspect(map_plugins_list))
 end
 
 -- TODO: if the attach_on_event is true then add an autocmd which with
@@ -310,6 +303,45 @@ end
 
 -- TODO: add something like keys_on_event so that the mappings should be added
 
+----------------------------------------------------------------------
+--                         Autocmd Register                         --
+----------------------------------------------------------------------
+local function autocmd_register(tbl)
+	local reg = tbl.registers
+	local autocmd = reg.autocmd
+	-- to provide the name of the plugin in the register_event function
+	autocmd.name = tbl.name
+	-- to provide the file type if provided by the plugin
+	if tbl.ft then
+		autocmd.ft = tbl.ft
+	end
+	-- register the event
+	register_event(autocmd)
+end
+
+----------------------------------------------------------------------
+--                          Keymap Loader                           --
+----------------------------------------------------------------------
+local function keymap_register(tbl)
+	local reg = tbl.registers
+	local keymap = reg.keymap
+	-- tbl needed for keymap register
+	local plugin_tbl = {
+		name = tbl.name,
+		del_augroup = tbl.del_augroup,
+		packadd = tbl.packadd,
+		on_load = tbl.on_load,
+		before_load = tbl.before_load,
+		keys = keymap.keys,
+	}
+
+	if keymap and keymap.keys then
+		-- if only the keymap register is added
+		keymap_loader(keymap.keys, plugin_tbl)
+	end
+end
+
+-- TODO: update docs
 -- @doc expects a table
 -- {
 --	-- plugin name
@@ -366,38 +398,23 @@ end
 -- 	},
 -- }
 
+-- TODO: is should create a tbl of plugins like packer and then populate the
+-- registers after that rather then passing around plugin tbl in few functions
+
 M.loader = function(tbl)
-	local autocmd = tbl.registers.autocmd
-	local keymap = tbl.registers.keymap
+	local reg = tbl.registers
 
-	local after = keymap and keymap.after or autocmd and autocmd.after
+	-- TODO: implement this
+	-- local after = keymap and keymap.after or autocmd and autocmd.after
 
-	-- plugin tbl needed for all registers to load plugin
-	local plugin = {
-		name = tbl.name,
-		del_augroup = tbl.del_augroup,
-		packadd = tbl.packadd,
-		on_load = tbl.on_load,
-		before_load = tbl.before_load,
-	}
-	-- if both autocmd and mapping registers are added then add maps callback
-	-- function to delete the augroup after the plugin is loaded through a map
-	-- NOTE: what if user provides the callback and the on_load.confg maybe give warning
-	if keymap and autocmd then
-		-- if after and after == "keymap" then
-		-- 	keymap_loader(keymap.keys, plugin)
-		-- elseif after and after == "autocmd" then
-		-- 	register_event(autocmd, plugin)
-		-- else
-		keymap_loader(keymap.keys, plugin)
-		register_event(autocmd, plugin)
-		-- end
-	elseif keymap and keymap.keys then
-		-- if only the keymap register is added
-		keymap_loader(keymap.keys, plugin)
-	elseif autocmd then
-		-- if only autocmd register is added
-		register_event(autocmd, plugin)
+	-- register the autocmd register if provided
+	if reg.autocmd then
+		autocmd_register(tbl)
+	end
+
+	-- register keymap register if provided
+	if reg.keymap then
+		keymap_register(tbl)
 	end
 end
 
