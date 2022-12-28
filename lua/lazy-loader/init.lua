@@ -221,6 +221,7 @@ local function register_event(plugin)
 		pattern = plugin.ft
 	end
 
+	-- TODO: work on this ft_plugins
 	local callback
 	if plugin.callback and plugin.open_on_ft then
 		callback = load_ft_plugin(plugin)
