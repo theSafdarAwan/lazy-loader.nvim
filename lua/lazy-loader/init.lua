@@ -253,7 +253,6 @@ local function set_key(key, plugin)
 			end)
 		end
 
-		-- TODO: need to work on this
 		local extra = ""
 		while true do
 			local c = vim.fn.getchar(0)
@@ -276,6 +275,9 @@ local function set_key(key, plugin)
 
 		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
 		vim.api.nvim_feedkeys(escaped_keys, "m", true)
+
+		-- Important: need to delete the this map because now the mappings for plugin are loaded
+		vim.keymap.del(key.mode, key.bind)
 	end, key.opts or { noremap = true, silent = true })
 end
 
