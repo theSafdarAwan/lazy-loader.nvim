@@ -243,7 +243,7 @@ end
 -- to add the mappings
 
 local function set_key(key, plugin)
-	local function callback()
+	vim.keymap.set(key.mode, key.bind, function()
 		load_plugin(plugin)
 		if plugin.on_load.cmd then
 			-- need to schedule_wrap this else some cmds will be executed before even the
@@ -253,13 +253,11 @@ local function set_key(key, plugin)
 			end)
 		end
 
-		-- TODO: do something like nvim_get_keymap("mode") and then check
-		-- if the keymap is available after the character is available if
-		-- not then continue getting chars until some limitation nr
+		-- TODO: need to work on this
 		local extra = ""
 		while true do
 			local c = vim.fn.getchar(0)
-			if c == 0 or true then
+			if c == 0 then
 				break
 			end
 			extra = extra .. vim.fn.nr2char(c)
@@ -278,9 +276,6 @@ local function set_key(key, plugin)
 
 		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
 		vim.api.nvim_feedkeys(escaped_keys, "m", true)
-	end
-	vim.keymap.set(key.mode, key.bind, function()
-		callback()
 	end, key.opts or { noremap = true, silent = true })
 end
 
