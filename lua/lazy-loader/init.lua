@@ -253,10 +253,13 @@ local function set_key(key, plugin)
 			end)
 		end
 
+		-- TODO: do something like nvim_get_keymap("mode") and then check
+		-- if the keymap is available after the character is available if
+		-- not then continue getting chars until some limitation nr
 		local extra = ""
 		while true do
 			local c = vim.fn.getchar(0)
-			if c == 0 then
+			if c == 0 or true then
 				break
 			end
 			extra = extra .. vim.fn.nr2char(c)
