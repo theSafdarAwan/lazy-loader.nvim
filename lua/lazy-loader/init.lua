@@ -201,11 +201,9 @@ end
 --                             Re-write                             --
 ----------------------------------------------------------------------
 
--- TODO: create docs
+-- TODO: write docs
 
 M.loader = function(tbl)
-	-- TODO: remove the augroup and dynamically add and remove the del_augroup
-
 	-- general information about the plugin
 	local plugin = {
 		name = tbl.name,
