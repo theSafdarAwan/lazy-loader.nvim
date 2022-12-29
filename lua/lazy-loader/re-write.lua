@@ -88,7 +88,6 @@ function M.autocmd_register(plugin)
 			keymap_tbl.autocmd = nil
 			M.keymap_register(keymap_tbl)
 		else
-			print(vim.inspect(plugin))
 			load_plugin(plugin)
 		end
 	end
