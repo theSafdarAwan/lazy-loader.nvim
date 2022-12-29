@@ -113,7 +113,7 @@ end
 ----------------------------------------------------------------------
 local function set_key(key, plugin)
 	vim.keymap.set(key.mode, key.bind, function()
-		-- Important: need to delete this map before the plugin loading because now the mappings
+		-- NOTE:Important: need to delete this map before the plugin loading because now the mappings
 		-- for plugin will be loaded
 		vim.keymap.del(key.mode, key.bind)
 
