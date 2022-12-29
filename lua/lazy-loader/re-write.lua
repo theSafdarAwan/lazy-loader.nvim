@@ -7,15 +7,19 @@ local vim = vim
 local packer = require("packer")
 local packer_plugins = _G.packer_plugins
 
+----------------------------------------------------------------------
+--                          Plugin Loader                           --
+----------------------------------------------------------------------
 local function load_plugin(plugin)
 	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
-		-- load the user configuration
+		-- load the user configuration before loading plugin
 		if plugin.before_load and plugin.before_load.config then
 			plugin.before_load.config()
 		end
 		if plugin.del_augroup then
 			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
 		end
+
 		-- add the package this is important else you won't be able to
 		-- execute the command from command line for this plugin's you lazy loaded
 		vim.cmd("silent! packadd " .. plugin.name)
@@ -28,22 +32,23 @@ local function load_plugin(plugin)
 		return
 	end
 
-	-- load the user configuration
+	-- load the user configuration after loading plugin
 	if plugin.on_load and plugin.on_load.config then
 		plugin.on_load.config()
 	end
 
-	-- execute event if provided in the on_load.event
+	-- NOTE: this is for user only if the plugin they are trying to load is giving some problems
 	if plugin.on_load and plugin.on_load.event then
+		-- execute event if provided in the on_load.event
 		vim.schedule(function()
 			vim.cmd("silent! do " .. plugin.on_load.event)
 		end)
+	else
+		vim.schedule(function()
+			-- a little trick to trigger the reload the buffer after the plugin is loaded
+			vim.cmd("silent! do BufEnter")
+		end)
 	end
-
-	vim.schedule(function()
-		-- a little trick to trigger the reload the buffer after the plugin is loaded
-		vim.cmd("silent! do BufEnter")
-	end)
 end
 
 local api = vim.api
@@ -68,8 +73,17 @@ function M.autocmd_register(plugin)
 		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
 		pattern = pattern,
 		callback = function()
-			if plugin.autocmd.keymap then
-				-- TODO: plugin keymap loader
+			if autocmd and autocmd.keymap then
+				-- need to delete the augroup before registering a mapping to load the plugin
+				vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+
+				-- convert the autocmd plugin tbl to keymap_tbl
+				local keymap_tbl = vim.deepcopy(plugin)
+				keymap_tbl.keymap = autocmd.keymap
+				-- need to delete the augroup for this plugin
+				keymap_tbl.del_augroup = true
+				keymap_tbl.autocmd = nil
+				M.keymap_register(keymap_tbl)
 			else
 				load_plugin(plugin)
 			end
@@ -121,8 +135,8 @@ local function set_key(key, plugin)
 end
 
 function M.keymap_register(plugin_tbl)
-	-- tbl needed for keymap register
 	local plugin = vim.deepcopy(plugin_tbl)
+	-- only need to send plugin information no need for sending registers information
 	plugin.keymap = nil
 
 	local keymap = plugin_tbl.keymap
