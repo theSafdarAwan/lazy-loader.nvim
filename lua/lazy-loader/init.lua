@@ -204,37 +204,27 @@ end
 local api = vim.api
 local events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
--- to load the file type plugin
-local function load_ft_plugin(plugin)
-	-- validate if the file type matches the autocmd.ft if provided
-	if plugin.ft and vim.bo.filetype ~= plugin.ft then
-		return
-	end
-	load_plugin(plugin.name)
-end
-
 local function register_event(plugin)
-	local pattern = "*"
-	if plugin.ft_ext then
-		pattern = "*." .. plugin.ft_ext
-	elseif plugin.ft then
+	-- pattern for the autocmd if provided
+	local pattern = nil
+	if plugin.ft then
+		-- filetype as a pattern
 		pattern = plugin.ft
-	end
-
-	-- TODO: work on this ft_plugins
-	local callback
-	if plugin.callback and plugin.open_on_ft then
-		callback = load_ft_plugin(plugin)
-	else
-		callback = function()
-			load_ft_plugin(plugin)
-		end
+	elseif plugin.ft_ext then
+		-- filetype extension can also be used as a pattern
+		pattern = "*." .. plugin.ft_ext
 	end
 
 	api.nvim_create_autocmd(plugin.events or plugin.event or events, {
 		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
 		pattern = pattern,
-		callback = callback,
+		callback = function()
+			if plugin.autocmd.keymap then
+				-- TODO: plugin keymap loader
+			else
+				load_plugin(plugin)
+			end
+		end,
 	})
 end
 
@@ -287,9 +277,42 @@ end
 -- with this plugin name in callback function of the autocmd for this
 -- plugin autocmd register
 
--- send individual keys to the set_key and plugin table
-local function keymap_loader(keys, plugin)
-	if keys then
+-- TODO: add something like keys_on_event so that the mappings should be added
+-- after a certain event like on filetype
+
+----------------------------------------------------------------------
+--                         Autocmd Register                         --
+----------------------------------------------------------------------
+local function autocmd_register(tbl)
+	local autocmd = tbl.autocmd
+	-- to provide the name of the plugin in the register_event function
+	autocmd.name = tbl.name
+	-- to provide the file type if provided by the plugin
+	if tbl.ft then
+		autocmd.ft = tbl.ft
+	elseif tbl.ft_ext then
+		autocmd.ft_ext = tbl.ft_ext
+	end
+	-- register the event
+	register_event(autocmd)
+end
+
+----------------------------------------------------------------------
+--                          Keymap Loader                           --
+----------------------------------------------------------------------
+local function keymap_register(tbl)
+	local keymap = tbl.keymap
+	-- tbl needed for keymap register
+	local plugin = {
+		name = tbl.name,
+		del_augroup = tbl.del_augroup,
+		on_load = tbl.on_load,
+		before_load = tbl.before_load,
+		keys = keymap.keys,
+	}
+
+	if keymap and keymap.keys then
+		local keys = keymap.keys
 		for _, k in pairs(keys) do
 			local mode = "n"
 			local bind = k
@@ -300,47 +323,6 @@ local function keymap_loader(keys, plugin)
 			local keybind = { mode = mode, bind = bind, opts = { noremap = true, silent = true } }
 			set_key(keybind, plugin)
 		end
-	end
-end
-
--- TODO: add something like keys_on_event so that the mappings should be added
--- after a certain event like on filetype
-
-----------------------------------------------------------------------
---                         Autocmd Register                         --
-----------------------------------------------------------------------
-local function autocmd_register(tbl)
-	local reg = tbl.registers
-	local autocmd = reg.autocmd
-	-- to provide the name of the plugin in the register_event function
-	autocmd.name = tbl.name
-	-- to provide the file type if provided by the plugin
-	if tbl.ft then
-		autocmd.ft = tbl.ft
-	end
-	-- register the event
-	register_event(autocmd)
-end
-
-----------------------------------------------------------------------
---                          Keymap Loader                           --
-----------------------------------------------------------------------
-local function keymap_register(tbl)
-	local reg = tbl.registers
-	local keymap = reg.keymap
-	-- tbl needed for keymap register
-	local plugin_tbl = {
-		name = tbl.name,
-		del_augroup = tbl.del_augroup,
-		packadd = tbl.packadd,
-		on_load = tbl.on_load,
-		before_load = tbl.before_load,
-		keys = keymap.keys,
-	}
-
-	if keymap and keymap.keys then
-		-- if only the keymap register is added
-		keymap_loader(keymap.keys, plugin_tbl)
 	end
 end
 
@@ -405,18 +387,17 @@ end
 -- registers after that rather then passing around plugin tbl in few functions
 
 M.loader = function(tbl)
-	local reg = tbl.registers
+	-- TODO: remove the augroup and dynamically add and remove the del_augroup
 
-	-- TODO: implement this
-	-- local after = keymap and keymap.after or autocmd and autocmd.after
+	-- TODO: create plugin tbl here don't create it inside every register
 
 	-- register the autocmd register if provided
-	if reg.autocmd then
+	if tbl.autocmd then
 		autocmd_register(tbl)
 	end
 
 	-- register keymap register if provided
-	if reg.keymap then
+	if tbl.keymap then
 		keymap_register(tbl)
 	end
 end

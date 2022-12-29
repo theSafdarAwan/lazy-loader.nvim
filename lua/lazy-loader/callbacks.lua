@@ -27,24 +27,6 @@ callbacks.gitsigns = function()
 	end
 end
 
--- cmp-nvim-lua callback function
-callbacks.cmp_nvim_lua = function()
-	local plugin = {
-		name = "cmp-nvim-lua",
-		event = "insertenter",
-	}
-	local callback = function()
-		if vim.bo.filetype ~= "lua" then
-			return
-		end
-
-		schedule(plugin.name)
-	end
-
-	plugin.callback = callback
-	register_autocmd(plugin)
-end
-
 -- neorg callback function
 callbacks.neorg = function()
 	local neorg = "neorg"
