@@ -72,10 +72,16 @@ function M.autocmd_register(plugin)
 	local autocmd = plugin.autocmd
 	local events = autocmd.event or autocmd.events
 	-- filetype extesion pattern for the autocmd
-	local pattern = nil
+	local pattern
 	-- to use file as a pattern
-	if autocmd.ft_ext then
-		pattern = "*." .. plugin.ft_ext
+	local ft_ext = autocmd.ft_ext
+	if ft_ext and type(ft_ext) == "string" then
+		pattern = "*." .. ft_ext
+	elseif ft_ext and type(ft_ext) == "table" then
+		pattern = {}
+		for _, ext in pairs(ft_ext) do
+			pattern[#pattern + 1] = "*." .. ext
+		end
 	end
 
 	local function callback_loader()
@@ -118,7 +124,7 @@ local function set_key(key, plugin)
 		vim.keymap.del(key.mode, key.bind)
 
 		load_plugin(plugin)
-		if plugin.on_load.cmd then
+		if plugin.onload and plugin.on_load.cmd then
 			-- need to schedule_wrap this else some cmds will be executed before even the
 			-- plugin is loaded properly
 			vim.schedule_wrap(function()
@@ -170,6 +176,13 @@ function M.keymap_register(plugin_tbl)
 			set_key(keybind, plugin)
 		end
 	end
+end
+
+----------------------------------------------------------------------
+--                        Without Any Delay                         --
+----------------------------------------------------------------------
+function M.no_delay(plugin_tbl)
+	load_plugin(plugin_tbl)
 end
 
 return M

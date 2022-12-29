@@ -168,6 +168,7 @@ M.loaders = loaders
 local re_write = require("lazy-loader.re-write")
 local autocmd_register = re_write.autocmd_register
 local keymap_register = re_write.keymap_register
+local no_delay = re_write.no_delay
 
 M.loader = function(tbl)
 	-- TODO: remove the augroup and dynamically add and remove the del_augroup
@@ -191,6 +192,10 @@ M.loader = function(tbl)
 		local keymap_tbl = vim.deepcopy(plugin)
 		keymap_tbl.keymap = tbl.keymap
 		keymap_register(keymap_tbl)
+	end
+
+	if not tbl.keymap and not tbl.autocmd then
+		no_delay(tbl)
 	end
 end
 
