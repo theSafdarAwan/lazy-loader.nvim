@@ -7,9 +7,6 @@ local vim = vim
 local packer = require("packer")
 local packer_plugins = _G.packer_plugins
 
-----------------------------------------------------------------------
---                             Re-write                             --
-----------------------------------------------------------------------
 local function load_plugin(plugin)
 	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
 		-- load the user configuration
@@ -52,13 +49,17 @@ end
 local api = vim.api
 local events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
-local function register_event(plugin)
+----------------------------------------------------------------------
+--                         Autocmd Register                         --
+----------------------------------------------------------------------
+function M.autocmd_register(plugin)
+	local autocmd = plugin.autocmd
 	-- pattern for the autocmd if provided
 	local pattern = nil
-	if plugin.ft then
+	if autocmd.ft then
 		-- filetype as a pattern
 		pattern = plugin.ft
-	elseif plugin.ft_ext then
+	elseif autocmd.ft_ext then
 		-- filetype extension can also be used as a pattern
 		pattern = "*." .. plugin.ft_ext
 	end
@@ -76,10 +77,9 @@ local function register_event(plugin)
 	})
 end
 
--- TODO: add a autocmd for BufEnter so that if the autocmd.ft_ext is provided
--- only add mapping to the buffer files with this pattern
--- to add the mappings
-
+----------------------------------------------------------------------
+--                          Keymap Loader                           --
+----------------------------------------------------------------------
 local function set_key(key, plugin)
 	vim.keymap.set(key.mode, key.bind, function()
 		-- Important: need to delete this map before the plugin loading because now the mappings
@@ -120,45 +120,12 @@ local function set_key(key, plugin)
 	end, key.opts or { noremap = true, silent = true })
 end
 
--- TODO: if the attach_on_event is true then add an autocmd which with
--- the event name of the plugin then register an event with the same name
--- with this plugin name in callback function of the autocmd for this
--- plugin autocmd register
-
--- TODO: add something like keys_on_event so that the mappings should be added
--- after a certain event like on filetype
-
-----------------------------------------------------------------------
---                         Autocmd Register                         --
-----------------------------------------------------------------------
-function M.autocmd_register(tbl)
-	local autocmd = tbl.autocmd
-	-- to provide the name of the plugin in the register_event function
-	autocmd.name = tbl.name
-	-- to provide the file type if provided by the plugin
-	if tbl.ft then
-		autocmd.ft = tbl.ft
-	elseif tbl.ft_ext then
-		autocmd.ft_ext = tbl.ft_ext
-	end
-	-- register the event
-	register_event(autocmd)
-end
-
-----------------------------------------------------------------------
---                          Keymap Loader                           --
-----------------------------------------------------------------------
-function M.keymap_register(tbl)
-	local keymap = tbl.keymap
+function M.keymap_register(plugin_tbl)
 	-- tbl needed for keymap register
-	local plugin = {
-		name = tbl.name,
-		del_augroup = tbl.del_augroup,
-		on_load = tbl.on_load,
-		before_load = tbl.before_load,
-		keys = keymap.keys,
-	}
+	local plugin = vim.deepcopy(plugin_tbl)
+	plugin.keymap = nil
 
+	local keymap = plugin_tbl.keymap
 	if keymap and keymap.keys then
 		local keys = keymap.keys
 		for _, k in pairs(keys) do

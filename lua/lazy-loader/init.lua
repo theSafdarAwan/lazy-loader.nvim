@@ -163,65 +163,7 @@ M.loaders = loaders
 --                             Re-write                             --
 ----------------------------------------------------------------------
 
--- TODO: update docs
--- @doc expects a table
--- {
---	-- plugin name
--- 	name = "foo", -- string
---	-- boolean value needed when you have to type of registers a keymap and a autocmd
--- 	del_augroup = [[true or false]] , -- boolean
---	-- table of registers for lazy loading currently on 2 are available keymap and autocmd
--- 	registers = {
---		-- this table includes table of keys to add as lazy loader trigger for this plugin
--- 		keymap = {
---			-- adds keymaps only on event register trigger for this mapping
---			attach_on_event = false, -- boolean default false
---			--  table of keys with either a single string or a table
---			-- with mode name and the key
--- 			keys = {
---				"<leader>cc", -- keybind as a string
---				{ "n", "<leader>bc" } -- or a key with the mode and keybind
---			},
---			-- on_load tbl lets you specify config for you plugin
---			-- like requiring the config file for the plugin this
---			-- will be required after the plugin is loaded.
---			on_load = {
---				-- this will be executed to open the plugin if need need that.
--- 				cmd = "echo 'Hello, World!'",
--- 				-- this key is just like packer config key require
--- 				-- your config files in here
--- 				config = function()
--- 					require("foo.bar")
--- 					-- or
--- 					require("bar.baz").setup({ --[[config goes here]]})
--- 				end,
--- 			},
--- 		},
--- 		-- this register adds an autocmd for the specified plugin
--- 		autocmd = {
---			-- TODO: add the events documentation
---			--
---			-- event or events are the same use whatever you want
---			event = "name of the events", -- string
---			events = "name of the events", -- string
---			-- this key acts as a buffer file validator to which the
---			-- autocmd should be attached you need to specify the filetype
---			-- or file extension of the file that you want plugin to be
---			-- loaded on the events that you provided.
--- 			ft = "markdown", -- markdown file type
--- 			ft = "md", -- markdown file type
--- 			-- NOTE:ft_ext is very helpful for filetypes like neorg which
--- 			-- are set after the treesitter you won't be able to lazy
--- 			-- lazy_load the neorg if you are also lazy loading treesitter
---			--
--- 			-- ft_ext = "norg", -- or filetype extension
---			on_load = { -- see keymap.on_load },
--- 		},
--- 	},
--- }
-
--- TODO: is should create a tbl of plugins like packer and then populate the
--- registers after that rather then passing around plugin tbl in few functions
+-- TODO: create docs
 
 local re_write = require("lazy-loader.re-write")
 local autocmd_register = re_write.autocmd_register
@@ -230,16 +172,25 @@ local keymap_register = re_write.keymap_register
 M.loader = function(tbl)
 	-- TODO: remove the augroup and dynamically add and remove the del_augroup
 
-	-- TODO: create plugin tbl here don't create it inside every register
+	-- general information about the plugin
+	local plugin = {
+		name = tbl.name,
+		before_load = tbl.before_load,
+		on_load = tbl.on_load,
+	}
 
 	-- register the autocmd register if provided
 	if tbl.autocmd then
-		autocmd_register(tbl)
+		local autocmd_tbl = vim.deepcopy(plugin)
+		autocmd_tbl.autocmd = tbl.autocmd
+		autocmd_register(autocmd_tbl)
 	end
 
 	-- register keymap register if provided
 	if tbl.keymap then
-		keymap_register(tbl)
+		local keymap_tbl = vim.deepcopy(plugin)
+		keymap_tbl.keymap = tbl.keymap
+		keymap_register(keymap_tbl)
 	end
 end
 
