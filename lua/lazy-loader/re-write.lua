@@ -7,6 +7,10 @@ local vim = vim
 local packer = require("packer")
 local packer_plugins = _G.packer_plugins
 
+local del_augroup = function(name)
+	vim.api.nvim_del_augroup_by_name("lazy_load_" .. name)
+end
+
 ----------------------------------------------------------------------
 --                          Plugin Loader                           --
 ----------------------------------------------------------------------
@@ -17,7 +21,7 @@ local function load_plugin(plugin)
 			plugin.before_load.config()
 		end
 		if plugin.del_augroup then
-			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+			del_augroup(plugin.name)
 		end
 
 		-- add the package this is important else you won't be able to
@@ -26,7 +30,7 @@ local function load_plugin(plugin)
 		packer.loader(plugin.name)
 	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
 		if plugin.del_augroup then
-			vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+			del_augroup(plugin.name)
 		end
 	else
 		return
@@ -52,43 +56,57 @@ local function load_plugin(plugin)
 end
 
 local api = vim.api
-local events = { "BufRead", "BufWinEnter", "BufNewFile" }
+local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
 ----------------------------------------------------------------------
 --                         Autocmd Register                         --
 ----------------------------------------------------------------------
+local function register_event(name, events, pattern, callback)
+	api.nvim_create_autocmd(events or default_events, {
+		group = api.nvim_create_augroup("lazy_load_" .. name, { clear = true }),
+		pattern = pattern,
+		callback = callback,
+	})
+end
 function M.autocmd_register(plugin)
 	local autocmd = plugin.autocmd
-	-- pattern for the autocmd if provided
+	local events = autocmd.event or autocmd.events
+	-- filetype extesion pattern for the autocmd
 	local pattern = nil
-	if autocmd.ft then
-		-- filetype as a pattern
-		pattern = plugin.ft
-	elseif autocmd.ft_ext then
-		-- filetype extension can also be used as a pattern
+	-- to use file as a pattern
+	if autocmd.ft_ext then
 		pattern = "*." .. plugin.ft_ext
 	end
 
-	api.nvim_create_autocmd(plugin.events or plugin.event or events, {
-		group = api.nvim_create_augroup("lazy_load_" .. plugin.name, { clear = true }),
-		pattern = pattern,
-		callback = function()
-			if autocmd and autocmd.keymap then
-				-- need to delete the augroup before registering a mapping to load the plugin
-				vim.api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+	local function callback_loader()
+		if autocmd and autocmd.keymap then
+			-- convert the autocmd plugin tbl to keymap_tbl
+			local keymap_tbl = vim.deepcopy(plugin)
+			keymap_tbl.keymap = autocmd.keymap
+			-- need to delete the augroup for this plugin
+			keymap_tbl.del_augroup = true
+			keymap_tbl.autocmd = nil
+			M.keymap_register(keymap_tbl)
+		else
+			print(vim.inspect(plugin))
+			load_plugin(plugin)
+		end
+	end
 
-				-- convert the autocmd plugin tbl to keymap_tbl
-				local keymap_tbl = vim.deepcopy(plugin)
-				keymap_tbl.keymap = autocmd.keymap
-				-- need to delete the augroup for this plugin
-				keymap_tbl.del_augroup = true
-				keymap_tbl.autocmd = nil
-				M.keymap_register(keymap_tbl)
-			else
-				load_plugin(plugin)
-			end
-		end,
-	})
+	if autocmd.ft then
+		-- if filetyp is provided then add FileType event
+		register_event(plugin.name, "FileType", autocmd.ft, function()
+			register_event(plugin.name, events, pattern, function()
+				if vim.bo.filetype ~= autocmd.ft then
+					return
+				else
+					callback_loader()
+				end
+			end)
+		end)
+	else
+		register_event(plugin.name, events, pattern, callback_loader)
+	end
 end
 
 ----------------------------------------------------------------------
