@@ -14,12 +14,26 @@ end
 ----------------------------------------------------------------------
 --                          Plugin Loader                           --
 ----------------------------------------------------------------------
-local function load_plugin(plugin)
+function M.load_plugin(plugin)
 	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
 		-- load the user configuration before loading plugin
 		if plugin.before_load and plugin.before_load.config then
 			plugin.before_load.config()
 		end
+
+		-- load plugins if the plugin requires
+		if plugin.requires then
+			local plugins = plugin.requires
+
+			if type(plugins) == "table" then
+				for _, p in pairs(plugins) do
+					M.load_plugin(p)
+				end
+			elseif type(plugins) == "string" then
+				M.load_plugin(plugins)
+			end
+		end
+
 		if plugin.del_augroup then
 			del_augroup(plugin.name)
 		end
@@ -44,14 +58,14 @@ local function load_plugin(plugin)
 	-- NOTE: this is for user only if the plugin they are trying to load is giving some problems
 	if plugin.on_load and plugin.on_load.event then
 		-- execute event if provided in the on_load.event
-		vim.schedule(function()
-			vim.cmd("silent! do " .. plugin.on_load.event)
-		end)
+		vim.cmd("silent! do " .. plugin.on_load.event)
 	else
-		vim.schedule(function()
-			-- a little trick to trigger the reload the buffer after the plugin is loaded
-			vim.cmd("silent! do BufEnter")
-		end)
+		-- a little trick to trigger the reload the buffer after the plugin is loaded
+		vim.cmd("silent! do BufEnter")
+	end
+
+	if plugin.on_load and plugin.on_load.cmd then
+		vim.cmd(plugin.on_load.cmd)
 	end
 end
 
@@ -84,17 +98,21 @@ function M.autocmd_register(plugin)
 		end
 	end
 
-	local function callback_loader()
-		if autocmd and autocmd.keymap then
-			-- convert the autocmd plugin tbl to keymap_tbl
-			local keymap_tbl = vim.deepcopy(plugin)
-			keymap_tbl.keymap = autocmd.keymap
-			-- need to delete the augroup for this plugin
-			keymap_tbl.del_augroup = true
-			keymap_tbl.autocmd = nil
-			M.keymap_register(keymap_tbl)
+	local callback_loader = function()
+		if autocmd.callback and not autocmd.callback() then
+			return
 		else
-			load_plugin(plugin)
+			if autocmd and autocmd.keymap then
+				-- convert the autocmd plugin tbl to keymap_tbl
+				local keymap_tbl = vim.deepcopy(plugin)
+				keymap_tbl.keymap = autocmd.keymap
+				-- need to delete the augroup for this plugin
+				keymap_tbl.del_augroup = true
+				keymap_tbl.autocmd = nil
+				M.keymap_register(keymap_tbl)
+			else
+				M.load_plugin(plugin)
+			end
 		end
 	end
 
@@ -123,14 +141,7 @@ local function set_key(key, plugin)
 		-- for plugin will be loaded
 		vim.keymap.del(key.mode, key.bind)
 
-		load_plugin(plugin)
-		if plugin.onload and plugin.on_load.cmd then
-			-- need to schedule_wrap this else some cmds will be executed before even the
-			-- plugin is loaded properly
-			vim.schedule_wrap(function()
-				vim.cmd(plugin.on_load.cmd)
-			end)
-		end
+		M.load_plugin(plugin)
 
 		local extra = ""
 		while true do
@@ -153,6 +164,7 @@ local function set_key(key, plugin)
 		vim.fn.feedkeys(prefix, "n")
 
 		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
+		-- vim.cmd("silent! do BufRead")
 		vim.api.nvim_feedkeys(escaped_keys, "m", true)
 	end, key.opts or { noremap = true, silent = true })
 end
@@ -182,7 +194,7 @@ end
 --                        Without Any Delay                         --
 ----------------------------------------------------------------------
 function M.no_delay(plugin_tbl)
-	load_plugin(plugin_tbl)
+	M.load_plugin(plugin_tbl)
 end
 
 return M
