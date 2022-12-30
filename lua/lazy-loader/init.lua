@@ -7,8 +7,11 @@ local M = {}
 local packer = require("packer")
 local packer_plugins = _G.packer_plugins
 
+local vim = vim
+local api = vim.api
+
 local del_augroup = function(name)
-	vim.api.nvim_del_augroup_by_name("lazy_load_" .. name)
+	api.nvim_del_augroup_by_name("lazy_load_" .. name)
 end
 
 ----------------------------------------------------------------------
@@ -69,7 +72,6 @@ function M.load_plugin(plugin)
 	end
 end
 
-local api = vim.api
 local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
 ----------------------------------------------------------------------
@@ -106,7 +108,7 @@ function M.autocmd_register(plugin)
 				-- convert the autocmd plugin tbl to keymap_tbl
 				local keymap_tbl = vim.deepcopy(plugin)
 				keymap_tbl.keymap = autocmd.keymap
-				-- need to delete the augroup for this plugin
+				-- need to delete the augroup for plugins loaded from here
 				keymap_tbl.del_augroup = true
 				keymap_tbl.autocmd = nil
 				M.keymap_register(keymap_tbl)
@@ -163,9 +165,9 @@ local function set_key(key, plugin)
 
 		vim.fn.feedkeys(prefix, "n")
 
-		local escaped_keys = vim.api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
+		local escaped_keys = api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
 		-- vim.cmd("silent! do BufRead")
-		vim.api.nvim_feedkeys(escaped_keys, "m", true)
+		api.nvim_feedkeys(escaped_keys, "m", true)
 	end, key.opts or { noremap = true, silent = true })
 end
 
