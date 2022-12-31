@@ -205,7 +205,7 @@ end
 
 -- TODO: write docs
 
-M.loader = function(tbl)
+M.load = function(tbl)
 	-- general information about the plugin
 	local plugin = {
 		name = tbl.name,
