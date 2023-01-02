@@ -9,8 +9,8 @@ local packer_plugins = _G.packer_plugins
 local vim = vim
 local api = vim.api
 
-local del_augroup = function(name)
-	api.nvim_del_augroup_by_name("lazy_load_" .. name)
+local _delete_augroup = function(name)
+	api.nvim__delete_augroup_by_name("lazy_load_" .. name)
 end
 
 ----------------------------------------------------------------------
@@ -36,8 +36,8 @@ function M.load_plugin(plugin)
 			end
 		end
 
-		if plugin.del_augroup then
-			del_augroup(plugin.name)
+		if plugin._delete_augroup then
+			_delete_augroup(plugin.name)
 		end
 
 		-- add the package this is important else you won't be able to
@@ -45,10 +45,9 @@ function M.load_plugin(plugin)
 		vim.cmd("silent! packadd " .. plugin.name)
 		packer.loader(plugin.name)
 	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
-		if plugin.del_augroup then
-			del_augroup(plugin.name)
+		if plugin._delete_augroup then
+			_delete_augroup(plugin.name)
 		end
-	else
 		return
 	end
 
@@ -61,9 +60,6 @@ function M.load_plugin(plugin)
 	if plugin.on_load and plugin.on_load.event then
 		-- execute event if provided in the on_load.event
 		vim.cmd("silent! do " .. plugin.on_load.event)
-	else
-		-- a little trick to trigger the reload the buffer after the plugin is loaded
-		vim.cmd("silent! do BufEnter")
 	end
 
 	if plugin.on_load and plugin.on_load.cmd then
@@ -108,7 +104,7 @@ function M.autocmd_register(plugin)
 				local keymap_tbl = vim.deepcopy(plugin)
 				keymap_tbl.keymap = autocmd.keymap
 				-- need to delete the augroup for plugins loaded from here
-				keymap_tbl.del_augroup = true
+				keymap_tbl._delete_augroup = true
 				keymap_tbl.autocmd = nil
 				M.keymap_register(keymap_tbl)
 			else
@@ -195,6 +191,7 @@ end
 --                        Without Any Delay                         --
 ----------------------------------------------------------------------
 function M.no_delay(plugin_tbl)
+	plugin_tbl._no_delay = true
 	M.load_plugin(plugin_tbl)
 end
 
