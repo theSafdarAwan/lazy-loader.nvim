@@ -1,4 +1,3 @@
-local vim = vim
 local M = {}
 
 ----------------------------------------------------------------------
@@ -87,15 +86,15 @@ end
 function M.autocmd_register(plugin)
 	local autocmd = plugin.autocmd
 	local events = autocmd.event or autocmd.events
-	-- filetype extesion pattern for the autocmd
+	-- filetype extension pattern for the autocmd
 	local pattern
 	-- to use file as a pattern
-	local ft_ext = autocmd.ft_ext
-	if ft_ext and type(ft_ext) == "string" then
-		pattern = "*." .. ft_ext
-	elseif ft_ext and type(ft_ext) == "table" then
+	local ft_extension = autocmd.ft_ext
+	if ft_extension and type(ft_extension) == "string" then
+		pattern = "*." .. ft_extension
+	elseif ft_extension and type(ft_extension) == "table" then
 		pattern = {}
-		for _, ext in pairs(ft_ext) do
+		for _, ext in pairs(ft_extension) do
 			pattern[#pattern + 1] = "*." .. ext
 		end
 	end
