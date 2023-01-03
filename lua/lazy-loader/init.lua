@@ -10,7 +10,7 @@ local vim = vim
 local api = vim.api
 
 local _delete_augroup = function(name)
-	api.nvim_delete_augroup_by_name("lazy_load_" .. name)
+	api.nvim_del_augroup_by_name("lazy_load_" .. name)
 end
 
 ----------------------------------------------------------------------
