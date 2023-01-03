@@ -65,6 +65,10 @@ function M.load_plugin(plugin)
 	if plugin.on_load and plugin.on_load.cmd then
 		vim.cmd(plugin.on_load.cmd)
 	end
+
+	if plugin.force_reload then
+		vim.cmd("silent! do BufEnter")
+	end
 end
 
 local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
@@ -161,7 +165,6 @@ local function set_key(key, plugin)
 		vim.fn.feedkeys(prefix, "n")
 
 		local escaped_keys = api.nvim_replace_termcodes(key.bind .. extra, true, true, true)
-		-- vim.cmd("silent! do BufRead")
 		api.nvim_feedkeys(escaped_keys, "m", true)
 	end, key.opts or { noremap = true, silent = true })
 end
@@ -206,6 +209,7 @@ M.load = function(tbl)
 	local plugin = {
 		name = tbl.name,
 		before_load = tbl.before_load,
+		force_reload = tbl.force_reload or false,
 		on_load = tbl.on_load,
 	}
 
