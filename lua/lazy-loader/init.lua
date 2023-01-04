@@ -9,7 +9,7 @@ local packer_plugins = _G.packer_plugins
 local vim = vim
 local api = vim.api
 
-local _delete_augroup = function(name)
+local delete_augroup = function(name)
 	api.nvim_del_augroup_by_name("lazy_load_" .. name)
 end
 
@@ -37,7 +37,7 @@ function M.load_plugin(plugin)
 		end
 
 		if plugin._delete_augroup then
-			_delete_augroup(plugin.name)
+			delete_augroup(plugin.name)
 		end
 
 		-- add the package this is important else you won't be able to
@@ -46,7 +46,7 @@ function M.load_plugin(plugin)
 		packer.loader(plugin.name)
 	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
 		if plugin._delete_augroup then
-			_delete_augroup(plugin.name)
+			delete_augroup(plugin.name)
 		end
 		return
 	end
