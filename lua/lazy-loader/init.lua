@@ -36,7 +36,7 @@ function M.load_plugin(plugin)
 			end
 		end
 
-		if plugin._delete_augroup then
+		if not plugin._delete_augroup then
 			delete_augroup(plugin.name)
 		end
 
@@ -107,8 +107,6 @@ function M.autocmd_register(plugin)
 				-- convert the autocmd plugin tbl to keymap_tbl
 				local keymap_tbl = vim.deepcopy(plugin)
 				keymap_tbl.keymap = autocmd.keymap
-				-- need to delete the augroup for plugins loaded from here
-				keymap_tbl._delete_augroup = true
 				keymap_tbl.autocmd = nil
 				M.keymap_register(keymap_tbl)
 			else
@@ -142,6 +140,7 @@ local function set_key(key, plugin)
 		-- for plugin will be loaded
 		vim.keymap.del(key.mode, key.bind)
 
+		plugin._delete_augroup = false
 		M.load_plugin(plugin)
 
 		local extra = ""
@@ -210,6 +209,7 @@ M.load = function(tbl)
 		name = tbl.name,
 		before_load = tbl.before_load,
 		on_load = tbl.on_load,
+		_delete_augroup = true,
 	}
 
 	-- register the autocmd register if provided
