@@ -36,7 +36,7 @@ function M.load_plugin(plugin)
 			end
 		end
 
-		if not plugin._delete_augroup then
+		if plugin._delete_augroup then
 			delete_augroup(plugin.name)
 		end
 
@@ -194,6 +194,7 @@ end
 ----------------------------------------------------------------------
 function M.no_delay(plugin_tbl)
 	plugin_tbl._no_delay = true
+	plugin_tbl._delete_augroup = false
 	M.load_plugin(plugin_tbl)
 end
 
