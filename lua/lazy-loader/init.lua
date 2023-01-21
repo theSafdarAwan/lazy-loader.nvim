@@ -6,8 +6,30 @@ local M = {}
 local packer = require("packer")
 local packer_plugins = _G.packer_plugins
 
-local vim = vim
 local api = vim.api
+
+local notify = function(notify)
+	local level = notify.level or vim.log.levels.WARN
+	if not notify then
+		vim.api.nvim_notify("lazy-loader: notify table is not valid", notify.level or level, notify.opts or {})
+		return
+	end
+
+	local msg
+	if type(notify) == "string" then
+		msg = notify
+	elseif notify.msg and type(notify.msg) == "string" then
+		msg = notify.msg
+	elseif type(notify.msg) == "nil" then
+		vim.api.nvim_notify(
+			"lazy-loader: notify message is not valid",
+			notify.level or level,
+			notify.opts or {}
+		)
+		return
+	end
+	vim.api.nvim_notify(msg, level, notify.opts or {})
+end
 
 local delete_augroup = function(name)
 	api.nvim_del_augroup_by_name("lazy_load_" .. name)
@@ -198,6 +220,19 @@ function M.keymap_register(plugin_tbl)
 end
 
 ----------------------------------------------------------------------
+--                     After A plugin is loaded                     --
+----------------------------------------------------------------------
+
+function M.after(after_tbl)
+	-- TODO: add a User autocmd to trigger after a plugin is loaded and load the
+	-- plugin
+	if type(after_tbl.after) ~= "string" then
+		-- TODO: work in progress
+		notify({ msg = "after plugin is not a string for: " })
+	end
+end
+
+----------------------------------------------------------------------
 --                        Without Any Delay                         --
 ----------------------------------------------------------------------
 function M.no_delay(plugin_tbl)
@@ -213,6 +248,8 @@ end
 -- TODO: write docs
 
 M.load = function(tbl)
+	-- TODO: create a tbl of plugins that are being loaded through here
+
 	-- general information about the plugin
 	local plugin = {
 		name = tbl.name,
@@ -221,6 +258,14 @@ M.load = function(tbl)
 		on_load = tbl.on_load,
 		_delete_augroup = true,
 	}
+
+	-- load after a plugin
+	if tbl.after then
+		local after_tbl = vim.deepcopy(plugin)
+		after_tbl.after = tbl.after
+		M.after(after_tbl)
+		return
+	end
 
 	-- register the autocmd register if provided
 	if tbl.autocmd then
