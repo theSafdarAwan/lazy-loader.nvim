@@ -99,6 +99,18 @@ function M.load_plugin(plugin)
 			end, {})
 		end
 	end
+
+	local au_pattern = plugin.name .. " has been loaded"
+	local aug = vim.api.nvim_create_augroup("lazy loading " .. plugin.name, { clear = true })
+	vim.api.nvim_create_autocmd("User", {
+		group = aug,
+		pattern = au_pattern,
+		callback = function()
+			vim.cmd("do User " .. plugin.name .. " is loaded")
+			vim.api.nvim_del_augroup_by_id(aug)
+		end,
+	})
+	vim.cmd("silent! do User " .. au_pattern)
 end
 
 local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
@@ -224,12 +236,37 @@ end
 ----------------------------------------------------------------------
 
 function M.after(after_tbl)
-	-- TODO: add a User autocmd to trigger after a plugin is loaded and load the
-	-- plugin
+	local packer_path = vim.fn.stdpath("data") .. "/site/pack/packer"
 	if type(after_tbl.after) ~= "string" then
-		-- TODO: work in progress
-		notify({ msg = "after plugin is not a string for: " })
+		notify({ msg = "after plugin is not a string for: ", level = vim.log.levels.ERROR })
+		return
+	elseif
+		vim.fn.empty(vim.fn.glob(packer_path .. "/start/" .. after_tbl.after)) < 0
+		or vim.fn.empty(vim.fn.glob(packer_path .. "/opt/" .. after_tbl.after)) < 0
+	then
+		notify(
+			"lazy-loader: "
+				.. after_tbl.after
+				.. " not found cant load "
+				.. after_tbl.name
+				.. "first install the plugin"
+		)
+		return
 	end
+
+	local plugin_augroup = vim.api.nvim_create_augroup(
+		"lazy loading " .. after_tbl.name .. " after " .. after_tbl.after,
+		{ clear = true }
+	)
+	vim.api.nvim_create_autocmd("User", {
+		group = plugin_augroup,
+		pattern = after_tbl.after .. " is loaded",
+		callback = function()
+			print("hi")
+			M.load_plugin(after_tbl)
+			vim.api.nvim_del_augroup_by_id(plugin_augroup)
+		end,
+	})
 end
 
 ----------------------------------------------------------------------
@@ -242,14 +279,12 @@ function M.no_delay(plugin_tbl)
 end
 
 ----------------------------------------------------------------------
---                             Re-write                             --
+--                             Main-Function                        --
 ----------------------------------------------------------------------
 
 -- TODO: write docs
 
 M.load = function(tbl)
-	-- TODO: create a tbl of plugins that are being loaded through here
-
 	-- general information about the plugin
 	local plugin = {
 		name = tbl.name,
