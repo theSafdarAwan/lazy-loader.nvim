@@ -100,17 +100,7 @@ function M.load_plugin(plugin)
 		end
 	end
 
-	local au_pattern = plugin.name .. " has been loaded"
-	local aug = vim.api.nvim_create_augroup("lazy loading " .. plugin.name, { clear = true })
-	vim.api.nvim_create_autocmd("User", {
-		group = aug,
-		pattern = au_pattern,
-		callback = function()
-			vim.cmd("do User " .. plugin.name .. " is loaded")
-			vim.api.nvim_del_augroup_by_id(aug)
-		end,
-	})
-	vim.cmd("silent! do User " .. au_pattern)
+	vim.cmd("do User " .. plugin.name .. "has been loaded")
 end
 
 local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
@@ -260,7 +250,7 @@ function M.after(after_tbl)
 	)
 	vim.api.nvim_create_autocmd("User", {
 		group = plugin_augroup,
-		pattern = after_tbl.after .. " is loaded",
+		pattern = after_tbl.after .. " has been loaded",
 		callback = function()
 			print("hi")
 			M.load_plugin(after_tbl)
