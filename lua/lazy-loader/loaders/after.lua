@@ -4,7 +4,7 @@ local fn = vim.fn
 local api = vim.api
 
 local notify = require("lazy-loader.utils").notify
-local plugin_loader = require("lazy-loader.loader").plugin_loader
+local plugin_loader = require("lazy-loader.loaders.loader").plugin_loader
 
 local event_generator = require("lazy-loader.utils").event_generator
 

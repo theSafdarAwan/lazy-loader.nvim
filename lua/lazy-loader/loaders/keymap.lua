@@ -3,7 +3,7 @@ local M = {}
 local fn = vim.fn
 local api = vim.api
 
-local plugin_loader = require("lazy-loader.loader").plugin_loader
+local plugin_loader = require("lazy-loader.loaders.loader").plugin_loader
 
 local function set_key(key, plugin)
 	vim.keymap.set(key.mode, key.bind, function()

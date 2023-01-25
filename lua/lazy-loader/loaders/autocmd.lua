@@ -1,7 +1,7 @@
 local M = {}
 
 local event_generator = require("lazy-loader.utils").event_generator
-local plugin_loader = require("lazy-loader.loader").plugin_loader
+local plugin_loader = require("lazy-loader.loaders.loader").plugin_loader
 
 function M.autocmd_register(plugin)
 	local autocmd = plugin.autocmd
