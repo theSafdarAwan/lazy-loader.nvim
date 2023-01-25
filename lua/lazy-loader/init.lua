@@ -108,14 +108,15 @@ local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
 ----------------------------------------------------------------------
 --                         Autocmd Register                         --
 ----------------------------------------------------------------------
-local function register_event(name, events, pattern, callback)
-	api.nvim_create_autocmd(events or default_events, {
-		group = api.nvim_create_augroup("lazy_load_" .. name, { clear = true }),
-		pattern = pattern,
-		callback = callback,
-	})
-end
 function M.autocmd_register(plugin)
+	local function register_event(tbl)
+		api.nvim_create_autocmd(tbl.events or tbl.event or default_events, {
+			group = api.nvim_create_augroup("lazy_load_" .. tbl.name, { clear = true }),
+			pattern = tbl.pattern,
+			callback = tbl.callback,
+		})
+	end
+
 	local autocmd = plugin.autocmd
 	local events = autocmd.event or autocmd.events
 	-- filetype extension pattern for the autocmd
@@ -149,17 +150,27 @@ function M.autocmd_register(plugin)
 
 	if autocmd.ft then
 		-- if filetyp is provided then add FileType event
-		register_event(plugin.name, "FileType", autocmd.ft, function()
-			register_event(plugin.name, events, pattern, function()
-				if vim.bo.filetype ~= autocmd.ft then
-					return
-				else
-					callback_loader()
-				end
-			end)
-		end)
+		register_event({
+			name = plugin.name,
+			event = "FileType",
+			pattern = autocmd.ft,
+			callback = function()
+				register_event({
+					name = plugin.name,
+					events = events,
+					pattern = pattern,
+					callback = function()
+						if vim.bo.filetype ~= autocmd.ft then
+							return
+						else
+							callback_loader()
+						end
+					end,
+				})
+			end,
+		})
 	else
-		register_event(plugin.name, events, pattern, callback_loader)
+		register_event({ name = plugin.name, events = events, pattern = pattern, callback = callback_loader })
 	end
 end
 
