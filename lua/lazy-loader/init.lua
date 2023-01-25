@@ -66,17 +66,19 @@ function M.load_plugin(plugin)
 	vim.cmd("silent! packadd " .. plugin.name)
 	packer.loader(plugin.name)
 
-	-- load the user configuration after loading plugin
-	if plugin.on_load and plugin.on_load.config then
-		plugin.on_load.config()
-	end
+	if plugin.on_load then
+		-- load the user configuration after loading plugin
+		if plugin.on_load.config then
+			plugin.on_load.config()
+		end
 
-	if plugin.on_load and plugin.on_load.cmd then
-		vim.cmd(plugin.on_load.cmd)
-	end
+		if plugin.on_load.cmd then
+			vim.cmd(plugin.on_load.cmd)
+		end
 
-	if plugin.on_load and plugin.on_load.reload_buffer then
-		vim.cmd("silent! do BufEnter")
+		if plugin.on_load.reload_buffer then
+			vim.cmd("silent! do BufEnter")
+		end
 	end
 
 	if plugin.cmds then
@@ -87,10 +89,7 @@ function M.load_plugin(plugin)
 		end
 	end
 
-	if M.after_plugin_lazy_load_tbl[plugin.name] then
-		vim.cmd("silent! do User " .. plugin.name .. " has been loaded")
-		M.after_plugin_lazy_load_tbl[plugin.name] = nil
-	end
+	pcall(vim.cmd, "silent! do User " .. plugin.name .. " has been loaded")
 end
 
 ----------------------------------------------------------------------
@@ -230,7 +229,6 @@ end
 --                     After A plugin is loaded                     --
 ----------------------------------------------------------------------
 
-M.after_plugin_lazy_load_tbl = {}
 function M.after(after_tbl)
 	local packer_path = fn.stdpath("data") .. "/site/pack/packer"
 	if type(after_tbl.after) ~= "string" then
@@ -260,7 +258,6 @@ function M.after(after_tbl)
 			api.nvim_del_augroup_by_name(augroup_name)
 		end,
 	})
-	M.after_plugin_lazy_load_tbl[after_tbl.after] = ""
 end
 
 ----------------------------------------------------------------------
