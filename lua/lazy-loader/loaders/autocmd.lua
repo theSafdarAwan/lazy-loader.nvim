@@ -1,9 +1,9 @@
 local M = {}
 
 local event_generator = require("lazy-loader.utils").event_generator
-local plugin_loader = require("lazy-loader.loaders.loader").plugin_loader
+local loader = require("lazy-loader.loaders.loader").loader
 
-function M.autocmd_register(plugin)
+function M.autocmd(plugin)
 	local autocmd = plugin.autocmd
 	local events = autocmd.event or autocmd.events
 	-- filetype extension pattern for the autocmd
@@ -30,7 +30,7 @@ function M.autocmd_register(plugin)
 				keymap_tbl.autocmd = nil
 				M.keymap_register(keymap_tbl)
 			else
-				plugin_loader(plugin)
+				loader(plugin)
 			end
 		end
 	end

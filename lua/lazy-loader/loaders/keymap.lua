@@ -3,14 +3,14 @@ local M = {}
 local fn = vim.fn
 local api = vim.api
 
-local plugin_loader = require("lazy-loader.loaders.loader").plugin_loader
+local loader = require("lazy-loader.loaders.loader").loader
 
 local function set_key(key, plugin)
 	vim.keymap.set(key.mode, key.bind, function()
 		-- NOTE:Important: need to delete this map before the plugin loading because now the mappings
 		-- for plugin will be loaded
 		vim.keymap.del(key.mode, key.bind)
-		plugin_loader(plugin)
+		loader(plugin)
 
 		local extra = ""
 		while true do
@@ -37,7 +37,7 @@ local function set_key(key, plugin)
 	end, key.opts or { noremap = true, silent = true })
 end
 
-function M.keymap_register(plugin_tbl)
+function M.keymap(plugin_tbl)
 	local plugin = vim.deepcopy(plugin_tbl)
 	-- only need to send plugin information no need for sending registers information
 	plugin.keymap = nil

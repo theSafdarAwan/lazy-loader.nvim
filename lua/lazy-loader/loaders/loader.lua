@@ -9,7 +9,7 @@ local command = vim.api.nvim_command
 ----------------------------------------------------------------------
 --                          Plugin Loader                           --
 ----------------------------------------------------------------------
-function M.plugin_loader(plugin)
+function M.loader(plugin)
 	local ok, _ = pcall(vim.api.nvim_get_autocmds, { group = "lazy_load_" .. plugin.name })
 	if ok then
 		api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)

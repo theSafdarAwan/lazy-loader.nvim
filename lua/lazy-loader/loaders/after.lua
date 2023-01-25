@@ -4,7 +4,7 @@ local fn = vim.fn
 local api = vim.api
 
 local notify = require("lazy-loader.utils").notify
-local plugin_loader = require("lazy-loader.loaders.loader").plugin_loader
+local loader = require("lazy-loader.loaders.loader").loader
 
 local event_generator = require("lazy-loader.utils").event_generator
 
@@ -33,7 +33,7 @@ function M.after(after_tbl)
 		group_name = augroup_name,
 		pattern = after_tbl.after .. " has been loaded",
 		callback = function()
-			plugin_loader(after_tbl)
+			loader(after_tbl)
 			api.nvim_del_augroup_by_name(augroup_name)
 		end,
 	})
