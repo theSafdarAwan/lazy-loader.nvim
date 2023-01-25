@@ -104,8 +104,9 @@ end
 ----------------------------------------------------------------------
 local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
 local function register_event(tbl)
-	api.nvim_create_autocmd(tbl.events or tbl.event or default_events, {
-		group = api.nvim_create_augroup("lazy_load_" .. tbl.name, { clear = true }),
+	local events = tbl.events or tbl.event or default_events
+	api.nvim_create_autocmd(events, {
+		group = api.nvim_create_augroup(tbl.group_name, { clear = true }),
 		pattern = tbl.pattern,
 		callback = tbl.callback,
 	})
@@ -143,15 +144,16 @@ function M.autocmd_register(plugin)
 		end
 	end
 
+	local augroup_name = "lazy_load_" .. plugin.name
 	if autocmd.ft then
 		-- if filetyp is provided then add FileType event
 		register_event({
-			name = plugin.name,
+			group_name = augroup_name,
 			event = "FileType",
 			pattern = autocmd.ft,
 			callback = function()
 				register_event({
-					name = plugin.name,
+					group_name = augroup_name,
 					events = events,
 					pattern = pattern,
 					callback = function()
@@ -165,7 +167,12 @@ function M.autocmd_register(plugin)
 			end,
 		})
 	else
-		register_event({ name = plugin.name, events = events, pattern = pattern, callback = callback_loader })
+		register_event({
+			group_name = augroup_name,
+			events = events,
+			pattern = pattern,
+			callback = callback_loader,
+		})
 	end
 end
 
@@ -249,16 +256,14 @@ function M.after(after_tbl)
 		return
 	end
 
-	local plugin_augroup = api.nvim_create_augroup(
-		"lazy loading " .. after_tbl.name .. " after " .. after_tbl.after,
-		{ clear = true }
-	)
-	api.nvim_create_autocmd("User", {
-		group = plugin_augroup,
+	local augroup_name = "lazy loading " .. after_tbl.name .. " after " .. after_tbl.after
+	register_event({
+		event = "User",
+		group_name = augroup_name,
 		pattern = after_tbl.after .. " has been loaded",
 		callback = function()
 			M.load_plugin(after_tbl)
-			api.nvim_del_augroup_by_id(plugin_augroup)
+			api.nvim_del_augroup_by_name(augroup_name)
 		end,
 	})
 	M.after_plugin_lazy_load_tbl[after_tbl.after] = ""
