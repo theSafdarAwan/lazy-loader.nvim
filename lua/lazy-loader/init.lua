@@ -273,7 +273,6 @@ end
 --                        Without Any Delay                         --
 ----------------------------------------------------------------------
 function M.no_delay(plugin_tbl)
-	plugin_tbl._no_delay = true
 	M.load_plugin(plugin_tbl)
 end
 
