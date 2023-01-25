@@ -10,9 +10,10 @@ local api = vim.api
 local fn = vim.fn
 
 local notify = function(notify)
-	local level = notify.level or vim.log.levels.WARN
+	local level = vim.log.levels.WARN or notify.level
+
 	if not notify then
-		api.nvim_notify("lazy-loader: notify table is not valid", notify.level or level, notify.opts or {})
+		api.nvim_notify("lazy-loader: notify table is not valid", level, notify.opts or {})
 		return
 	end
 
@@ -22,53 +23,48 @@ local notify = function(notify)
 	elseif notify.msg and type(notify.msg) == "string" then
 		msg = notify.msg
 	elseif type(notify.msg) == "nil" then
-		api.nvim_notify("lazy-loader: notify message is not valid", notify.level or level, notify.opts or {})
+		api.nvim_notify("lazy-loader: notify message is not valid", level, notify.opts or {})
 		return
 	end
 	api.nvim_notify(msg, level, notify.opts or {})
-end
-
-local delete_augroup = function(name)
-	api.nvim_del_augroup_by_name("lazy_load_" .. name)
 end
 
 ----------------------------------------------------------------------
 --                          Plugin Loader                           --
 ----------------------------------------------------------------------
 function M.load_plugin(plugin)
-	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
-		-- load the user configuration before loading plugin
-		if plugin.before_load and plugin.before_load.config then
-			plugin.before_load.config()
-		end
+	local ok, _ = pcall(vim.api.nvim_get_autocmds, { group = "lazy_load_" .. plugin.name })
+	if ok then
+		api.nvim_del_augroup_by_name("lazy_load_" .. plugin.name)
+	end
 
-		-- load plugins if the plugin requires
-		if plugin.requires then
-			local plugins = plugin.requires
-
-			if type(plugins) == "table" then
-				for _, p in pairs(plugins) do
-					M.load_plugin(p)
-				end
-			elseif type(plugins) == "string" then
-				M.load_plugin(plugins)
-			end
-		end
-
-		if plugin._delete_augroup then
-			delete_augroup(plugin.name)
-		end
-
-		-- add the package this is important else you won't be able to
-		-- execute the command from command line for this plugin's you lazy loaded
-		vim.cmd("silent! packadd " .. plugin.name)
-		packer.loader(plugin.name)
-	elseif packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
-		if plugin._delete_augroup then
-			delete_augroup(plugin.name)
-		end
+	if packer_plugins[plugin.name] and packer_plugins[plugin.name].enable then
+		notify("lazy-loader: " .. plugin.name .. " is already loaded")
 		return
 	end
+
+	-- load the user configuration before loading plugin
+	if plugin.before_load and plugin.before_load.config then
+		plugin.before_load.config()
+	end
+
+	-- load plugins if the plugin requires
+	if plugin.requires then
+		local plugins = plugin.requires
+
+		if type(plugins) == "table" then
+			for _, p in pairs(plugins) do
+				M.load_plugin(p)
+			end
+		elseif type(plugins) == "string" then
+			M.load_plugin(plugins)
+		end
+	end
+
+	-- add the package this is important else you won't be able to
+	-- execute the command from command line for this plugin's you lazy loaded
+	vim.cmd("silent! packadd " .. plugin.name)
+	packer.loader(plugin.name)
 
 	-- load the user configuration after loading plugin
 	if plugin.on_load and plugin.on_load.config then
@@ -181,8 +177,6 @@ local function set_key(key, plugin)
 		-- NOTE:Important: need to delete this map before the plugin loading because now the mappings
 		-- for plugin will be loaded
 		vim.keymap.del(key.mode, key.bind)
-
-		plugin._delete_augroup = false
 		M.load_plugin(plugin)
 
 		local extra = ""
@@ -275,7 +269,6 @@ end
 ----------------------------------------------------------------------
 function M.no_delay(plugin_tbl)
 	plugin_tbl._no_delay = true
-	plugin_tbl._delete_augroup = false
 	M.load_plugin(plugin_tbl)
 end
 
@@ -292,8 +285,6 @@ M.load = function(tbl)
 		cmds = tbl.cmd or tbl.cmds,
 		before_load = tbl.before_load,
 		on_load = tbl.on_load,
-		-- TODO: remove this: i know it requires a lot of work but do this anyway
-		_delete_augroup = true,
 	}
 
 	-- load after a plugin
