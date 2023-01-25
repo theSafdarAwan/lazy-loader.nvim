@@ -3,6 +3,7 @@ local M = {}
 local after = require("lazy-loader.loaders.after").after
 local keymap = require("lazy-loader.loaders.keymap").keymap
 local autocmd = require("lazy-loader.loaders.autocmd").autocmd
+local loader = require("lazy-loader.loaders.loader").loader
 
 -- TODO: write docs
 
@@ -38,7 +39,7 @@ M.load = function(tbl)
 	end
 
 	if not tbl.keymap and not tbl.autocmd then
-		require("lazy-loader.loaders.loader").loader(tbl)
+		loader(tbl)
 	end
 end
 
