@@ -71,12 +71,6 @@ function M.load_plugin(plugin)
 		plugin.on_load.config()
 	end
 
-	-- NOTE: this is for user only if the plugin they are trying to load is giving some problems
-	if plugin.on_load and plugin.on_load.event then
-		-- execute event if provided in the on_load.event
-		vim.cmd("silent! do " .. plugin.on_load.event)
-	end
-
 	if plugin.on_load and plugin.on_load.cmd then
 		vim.cmd(plugin.on_load.cmd)
 	end
