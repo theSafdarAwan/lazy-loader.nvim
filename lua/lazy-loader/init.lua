@@ -35,7 +35,6 @@ end
 ----------------------------------------------------------------------
 --                          Plugin Loader                           --
 ----------------------------------------------------------------------
-local after_plugin_tbl = {}
 function M.load_plugin(plugin)
 	if packer_plugins[plugin.name] and not packer_plugins[plugin.name].enable then
 		-- load the user configuration before loading plugin
@@ -98,14 +97,16 @@ function M.load_plugin(plugin)
 		end
 	end
 
-	vim.cmd("do User " .. plugin.name .. " has been loaded")
+	if M.after_plugin_lazy_load_tbl[plugin.name] then
+		vim.cmd("silent! do User " .. plugin.name .. " has been loaded")
+		M.after_plugin_lazy_load_tbl[plugin.name] = nil
+	end
 end
-
-local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
 
 ----------------------------------------------------------------------
 --                         Autocmd Register                         --
 ----------------------------------------------------------------------
+local default_events = { "BufRead", "BufWinEnter", "BufNewFile" }
 local function register_event(tbl)
 	api.nvim_create_autocmd(tbl.events or tbl.event or default_events, {
 		group = api.nvim_create_augroup("lazy_load_" .. tbl.name, { clear = true }),
@@ -234,6 +235,7 @@ end
 --                     After A plugin is loaded                     --
 ----------------------------------------------------------------------
 
+M.after_plugin_lazy_load_tbl = {}
 function M.after(after_tbl)
 	local packer_path = fn.stdpath("data") .. "/site/pack/packer"
 	if type(after_tbl.after) ~= "string" then
@@ -265,6 +267,7 @@ function M.after(after_tbl)
 			api.nvim_del_augroup_by_id(plugin_augroup)
 		end,
 	})
+	M.after_plugin_lazy_load_tbl[after_tbl.after] = ""
 end
 
 ----------------------------------------------------------------------
