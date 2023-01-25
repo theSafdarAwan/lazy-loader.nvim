@@ -8,6 +8,7 @@ local packer_plugins = _G.packer_plugins
 
 local api = vim.api
 local fn = vim.fn
+local command = api.nvim_command
 
 local notify = function(notify)
 	local level = vim.log.levels.WARN or notify.level
@@ -63,7 +64,7 @@ function M.load_plugin(plugin)
 
 	-- add the package this is important else you won't be able to
 	-- execute the command from command line for this plugin's you lazy loaded
-	vim.cmd("silent! packadd " .. plugin.name)
+	command("silent! packadd " .. plugin.name)
 	packer.loader(plugin.name)
 
 	if plugin.on_load then
@@ -73,23 +74,23 @@ function M.load_plugin(plugin)
 		end
 
 		if plugin.on_load.cmd then
-			vim.cmd(plugin.on_load.cmd)
+			command(plugin.on_load.cmd)
 		end
 
 		if plugin.on_load.reload_buffer then
-			vim.cmd("silent! do BufEnter")
+			command("silent! do BufEnter")
 		end
 	end
 
 	if plugin.cmds then
 		for _, cmd in pairs(plugin.cmds) do
 			api.nvim_create_user_command(cmd, function()
-				vim.cmd(cmd)
+				command(cmd)
 			end, {})
 		end
 	end
 
-	pcall(vim.cmd, "silent! do User " .. plugin.name .. " has been loaded")
+	pcall(command, "silent! do User " .. plugin.name .. " has been loaded")
 end
 
 ----------------------------------------------------------------------
