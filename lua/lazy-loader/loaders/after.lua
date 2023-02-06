@@ -28,6 +28,7 @@ function M.after(after_tbl)
 	end
 
 	local augroup_name = "lazy loading " .. after_tbl.name .. " after " .. after_tbl.after
+
 	event_generator({
 		event = "User",
 		group_name = augroup_name,

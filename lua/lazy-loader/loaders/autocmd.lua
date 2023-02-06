@@ -28,7 +28,8 @@ function M.autocmd(plugin)
 				local keymap_tbl = vim.deepcopy(plugin)
 				keymap_tbl.keymap = autocmd.keymap
 				keymap_tbl.autocmd = nil
-				M.keymap_register(keymap_tbl)
+				local keymap = require("lazy-loader.loaders.keymap").keymap
+				keymap(keymap_tbl)
 			else
 				loader(plugin)
 			end
