@@ -5,9 +5,16 @@ local keymap = require("lazy-loader.loaders.keymap").keymap
 local autocmd = require("lazy-loader.loaders.autocmd").autocmd
 local loader = require("lazy-loader.loaders.loader").loader
 
+local notify = require("lazy-loader.utils").notify
+
 -- TODO: write docs
 
 M.load = function(tbl)
+	if not tbl.name then
+		local msg = "lazy-loader: Plugin name not provided"
+		notify(msg)
+		return
+	end
 	-- general information about the plugin
 	local plugin = {
 		name = tbl.name,
