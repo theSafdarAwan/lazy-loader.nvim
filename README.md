@@ -139,7 +139,7 @@ local md_preview = {
 require("lazy-loader").load(md_preview)
 ```
 
-For more examples you can look into my personal config [here]()https://github.com/TheSafdarAwan/nvim_conf/tree/master/lua/safdar/setup.
+For more examples you can look into my personal config [here](https://github.com/TheSafdarAwan/nvim_conf/tree/master/lua/safdar/setup).
 
 #### Adding to the packer.nvim config
 
