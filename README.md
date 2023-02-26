@@ -18,10 +18,10 @@ plugin table that will be lazy loaded. According to your config for that plugin.
 There are two ways to load plugins i call these loaders.
 
 - autocmd<br>
-  This is loader uses the `vim.api.nvim_create_autocmd` in its core. And allows
+  This loader uses the `vim.api.nvim_create_autocmd` in its core. And allows
   you to load plugin in just a few lines rather than you having to write this
   autocmd every time.
-- keymap
+- keymap<br>
   This loader lets you load plugin through a keymap or multiple keymaps.
   > You can also add this keymap loader inside of the autocmd loader. Which i will
   > discuss in the examples.
@@ -57,9 +57,16 @@ There are two ways to load plugins i call these loaders.
     -- 4: keymap -> this helps in case you don't want maps to be added before you
     -- go to that file type or that your specified event occurs, etc
     autocmd = {
+        -- string or table: you can specify the events for the autocmd or you can
+        -- leave this if you are using the ft or ft_ext
+        events = {}
          -- string or table: file type in which this plugin should be loaded
         ft = "foo",
          -- table or string: file extension like for *.lua add lua
+         -- this is a very important feature because if you want to lazy load the
+         -- plugins like norg then you won't have the file type for the norg
+         -- files because norg plugin set's the file type for the norg fiels
+         -- and the norg plugin won't be loaded.
         ft_ext = "md",
         -- same as the keymap loader
         keymap = {},
@@ -132,8 +139,17 @@ local md_preview = {
 require("lazy-loader").load(md_preview)
 ```
 
+For more examples you can look into my personal config [here]()https://github.com/TheSafdarAwan/nvim_conf/tree/master/lua/safdar/setup.
+
 #### Adding to the packer.nvim config
+
 To lazy load with this plugin you have to add the `opt = true` key to the packer
 plugin table. After that the config for the `lazy-loader.nvim` in the `setup`
 function of the `packer.nvim` don't add it to the `config` function it won't be
 loaded.
+
+#### Draw Backs
+
+The only draw back of using this plugin is that you can't use the `run` key in
+the packer config table anymore in the norg file type. It gives error. Which i
+will work on a bit latter.
