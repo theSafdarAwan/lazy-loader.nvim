@@ -7,8 +7,6 @@ local loader = require("lazy-loader.loaders.loader").loader
 
 local notify = require("lazy-loader.utils").notify
 
--- TODO: write docs
-
 M.load = function(tbl)
 	if not tbl.name then
 		local msg = "lazy-loader: Plugin name not provided"
