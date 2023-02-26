@@ -10,6 +10,9 @@ before with packer.
 > realized that this could be used by some other people like me who want to
 > reduce the time neovim takes to load i extracted this to its own plugin.
 
+I have cut down upto 70% of loading time with this plugin. I hope this also helps
+you.
+
 #### load function
 
 This plugin exposes you a function called `load` to which you can pass your
