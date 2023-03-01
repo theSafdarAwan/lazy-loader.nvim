@@ -145,6 +145,31 @@ local md_preview = {
 require("lazy-loader").load(md_preview)
 ```
 
+- norg<br>
+  This plugin will only be loaded in `norg` files or using the keymap `gtc` which
+  captures the todo(NOTE: at the moment norg removed this feature so this keymap
+  won't be available but you get the idea how to use keymap and autocmd both).
+
+```lua
+local lazy_load = {
+    name = "neorg",
+    on_load = {
+        config = function()
+            -- your config
+        end,
+    },
+    -- NOTE: the :Neorg capture has been removed so this keymap won't work
+    -- keymap = {
+    --     keys = { "gtc" },
+    -- },
+    autocmd = {
+        ft_ext = "norg",
+    },
+}
+require("lazy-loader").load(lazy_load)
+```
+
+
 For more examples you can look into my personal config [here](https://github.com/TheSafdarAwan/nvim_conf/tree/master/lua/safdar/setup).
 
 #### Adding to the packer.nvim config
