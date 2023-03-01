@@ -35,6 +35,9 @@ There are two ways to load plugins i call these loaders.
 {
     -- plugin name
     name = "foo",
+    -- table or string: add plugins that the plugin requires which should be
+    -- loaded before this plugin
+    requires = {}, -- table or a string
     -- after loading the plugin do these things
     on_load = {
         -- to reload buffer after loading plugin
