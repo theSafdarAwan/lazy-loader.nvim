@@ -76,6 +76,9 @@ There are two ways to load plugins i call these loaders.
         ft_ext = "md",
         -- same as the keymap loader
         keymap = {},
+        -- a callback function that can be used as a conditional see the gitsigns example
+        callback = function()
+        end
     },
 }
 ```
