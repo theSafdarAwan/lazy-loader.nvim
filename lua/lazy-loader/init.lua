@@ -1,3 +1,4 @@
+-- BUG: chaining multiple after plugins doesn't work fix that
 local M = {}
 
 local after = require("lazy-loader.loaders.after").after
