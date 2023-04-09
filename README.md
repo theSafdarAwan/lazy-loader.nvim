@@ -1,3 +1,7 @@
+I have migrated to the [lazy.nvim](https://github.com/folke/lazy.nvim.git/)
+
+this Plugin won't be continued
+
 ### Purpose of this plugin.
 
 > NOTE: This plugin can only be used with [packer.nvim](https://github.com/wbthomason/packer.nvim).
